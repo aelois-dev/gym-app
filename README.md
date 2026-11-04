@@ -27,7 +27,26 @@ npm run preview    # serve the build
 
 ## Deploy
 
-`dist/` is a static site built with a relative base, so it works from any path:
+`dist/` is a static site built with a relative base, so it works from any path.
+
+### Cloudflare Pages (recommended)
+
+**Option A: Git integration (auto-deploys on every push)**
+
+1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**, then choose this repo.
+2. Framework preset: **None**. Build command: `npm run build`. Build output directory: `dist`.
+3. Click **Save and Deploy**. The app is served at `https://gym-app.pages.dev` (or the name Cloudflare assigns).
+
+**Option B: deploy from the command line**
+
+```bash
+npx wrangler login        # or set CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID
+npm run deploy            # builds, then uploads dist/ to the "gym-app" Pages project
+```
+
+`wrangler.toml` sets the project name and output folder. `public/_headers` makes the service worker and HTML revalidate on every visit, so updates reach installed copies, and caches hashed assets long-term.
+
+### Other hosts
 
 - **Netlify / Vercel:** build command `npm run build`, output directory `dist`.
 - **GitHub Pages:** push `dist/` to a `gh-pages` branch (for example with `npx gh-pages -d dist`).

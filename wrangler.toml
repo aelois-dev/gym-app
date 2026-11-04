@@ -1,0 +1,4 @@
+# Cloudflare Pages config — https://developers.cloudflare.com/pages/functions/wrangler-configuration/
+name = "gym-app"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-10-01"
