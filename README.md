@@ -7,6 +7,8 @@ A mobile-first web app that builds a gym workout from the muscles you want to tr
 - **Plan by muscle and time:** pick any mix of Chest, Back, Shoulders, Biceps, Triceps, Legs, Glutes and Core, then set 15–120 minutes.
 - **Equipment:** Full gym, Dumbbells, or Bodyweight. Exercises are filtered to match.
 - **Goal-based presets:** Strength 4×5, Muscle 3×10, Endurance 3×15 (compound lifts get +1 set). Every set and rep count can be edited.
+- **Choose how many exercises** on the setup screen, or leave it on Auto to fit as many as your time allows. With a set number, the sets adjust to fit your time.
+- **Log the weight you lift:** kg per dumbbell, total kg on a barbell (bar and plates), or kg on the stack for machines and cables. Set it on the plan and adjust it on any set. The app remembers your last weight for each exercise, and the log shows what you lifted.
 - **Rest per exercise:** 3:00 by default after compound lifts and 2:00 after everything else. You can change both defaults on the setup screen and adjust any exercise's rest on the plan. The time estimate updates as you edit.
 - **Animated exercise demos:** a jointed mannequin performs every exercise, with the muscle it works shown in red. Tap a plan row's thumbnail to watch it. When you swap or add an exercise, you can preview each option before choosing it.
 - **Swap, add, reorder or remove exercises,** each with a form tip.

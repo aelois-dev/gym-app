@@ -132,6 +132,46 @@ describe('estimateSeconds', () => {
   })
 })
 
+describe('exercise count', () => {
+  it('plans exactly the number of exercises asked for', () => {
+    for (const count of [1, 2, 4, 6, 8]) {
+      const w = generatePlan({ ...base, muscles: ['chest', 'back', 'legs'], count }, seeded(count))
+      expect(w.items).toHaveLength(count)
+      expect(w.requestedCount).toBe(count)
+    }
+  })
+
+  it('still fits the time, or every exercise is down to 2 sets', () => {
+    for (let s = 1; s < 30; s++) {
+      const minutes = 20 + (s % 6) * 15
+      const w = generatePlan({ ...base, muscles: ['chest', 'back'], minutes, count: 2 + (s % 7) }, seeded(s))
+      const fits = estimateSeconds(w) <= minutes * 60
+      expect(fits || w.items.every((i) => i.sets === 2)).toBe(true)
+    }
+  })
+
+  it('uses leftover time for extra sets', () => {
+    const tight = generatePlan({ ...base, muscles: ['chest'], minutes: 30, count: 3 }, seeded(2))
+    const roomy = generatePlan({ ...base, muscles: ['chest'], minutes: 120, count: 3 }, seeded(2))
+    const sets = (w: typeof tight) => w.items.reduce((n, i) => n + i.sets, 0)
+    expect(sets(roomy)).toBeGreaterThan(sets(tight))
+  })
+
+  it('is capped by how many exercises match', () => {
+    const pool = poolFor('biceps', 'bodyweight').length
+    const w = generatePlan({ ...base, muscles: ['biceps'], equipment: 'bodyweight', count: 10 }, seeded(1))
+    expect(w.items).toHaveLength(pool)
+    expect(new Set(w.items.map((i) => i.exerciseId)).size).toBe(pool)
+  })
+
+  it('auto (no count) behaves as before', () => {
+    const a = generatePlan({ ...base, count: null }, seeded(4))
+    const b = generatePlan({ ...base }, seeded(4))
+    expect(a.items.map((i) => [i.exerciseId, i.sets])).toEqual(b.items.map((i) => [i.exerciseId, i.sets]))
+    expect(a.requestedCount).toBeUndefined()
+  })
+})
+
 describe('rest defaults', () => {
   it('gives compound lifts 3:00 and everything else 2:00 by default', () => {
     expect(DEFAULT_REST).toEqual({ compound: 180, isolation: 120 })

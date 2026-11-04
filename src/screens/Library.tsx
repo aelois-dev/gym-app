@@ -5,6 +5,7 @@ import { muscleLabel } from '../data/exercises'
 import { ExerciseAnimation } from '../figure/ExerciseAnimation'
 import { estimateSeconds, formatClock, formatDuration, type Workout } from '../lib/planner'
 import { store } from '../lib/storage'
+import { formatWeights } from '../lib/weights'
 
 type Tab = 'history' | 'saved'
 
@@ -77,6 +78,14 @@ export function Library({ onOpen, notify }: { onOpen: (w: Workout) => void; noti
                     <span className="muted">
                       {formatClock(h.durationSec)}, {h.setsDone} of {h.totalSets} sets
                     </span>
+                    {h.exercises.some((e) => formatWeights(e.weights)) && (
+                      <span className="log__lifts">
+                        {h.exercises
+                          .filter((e) => formatWeights(e.weights))
+                          .map((e) => `${e.name} ${formatWeights(e.weights)}`)
+                          .join(', ')}
+                      </span>
+                    )}
                   </span>
                   <button
                     className="icon-btn icon-btn--sm"

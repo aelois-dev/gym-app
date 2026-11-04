@@ -41,6 +41,8 @@ export interface PlanItem {
   reps: number
   /** Rest after each set of this exercise (also used before the next exercise). */
   restSec?: number
+  /** Planned load in kg (per dumbbell, total barbell, or stack weight). */
+  weightKg?: number
 }
 
 export interface RestDefaults {
@@ -61,6 +63,8 @@ export interface Workout {
   restSec?: number
   warmup: boolean
   targetMin: number
+  /** Number of exercises the user asked for (unset = fill the time). */
+  requestedCount?: number
   items: PlanItem[]
 }
 
@@ -70,6 +74,8 @@ export interface PlanInput extends RestDefaults {
   equipment: EquipmentMode
   goal: Goal
   warmup: boolean
+  /** Exact number of exercises wanted; null/undefined fills the available time instead. */
+  count?: number | null
 }
 
 export function uid(): string {
@@ -153,6 +159,7 @@ export function generatePlan(input: PlanInput, rand: () => number = Math.random)
     restIsolation: input.restIsolation,
     warmup: input.warmup,
     targetMin: input.minutes,
+    ...(input.count ? { requestedCount: input.count } : {}),
     items: [],
   }
 
@@ -175,10 +182,37 @@ export function generatePlan(input: PlanInput, rand: () => number = Math.random)
   }
 
   const fits = (items: PlanItem[]) => estimateSeconds({ ...workout, items }) <= budget
+  const newItem = (ex: Exercise): PlanItem => ({ uid: uid(), exerciseId: ex.id, ...defaultPrescription(ex, input.goal), restSec: defaultRest(ex, input) })
+  /** Take one set from the exercise with the most sets (never below 2). Returns false if nothing can go. */
+  const trimOneSet = () => {
+    const idx = workout.items.reduce((best, it, i) => (it.sets >= workout.items[best].sets ? i : best), 0)
+    if (workout.items[idx].sets <= 2) return false
+    workout.items = workout.items.map((x, i) => (i === idx ? { ...x, sets: x.sets - 1 } : x))
+    return true
+  }
+  const count = input.count ? Math.min(input.count, MAX_EXERCISES) : null
+
+  if (count) {
+    // Exact count: take exercises round-robin across muscles, then fit the sets to the time.
+    while (workout.items.length < count) {
+      let took = false
+      for (const m of muscles) {
+        if (workout.items.length >= count) break
+        const ex = queues.get(m)!.shift()
+        if (!ex) continue
+        workout.items = [...workout.items, newItem(ex)]
+        took = true
+      }
+      if (!took) break // not enough matching exercises
+    }
+    while (!fits(workout.items) && trimOneSet()) {
+      /* trim until it fits or every exercise is at 2 sets */
+    }
+  }
 
   // Round-robin across muscles so every muscle gets work before any gets seconds.
   const covered = new Set<Muscle>()
-  let added = true
+  let added = !count
   while (added && workout.items.length < MAX_EXERCISES) {
     added = false
     for (const m of muscles) {
@@ -186,7 +220,7 @@ export function generatePlan(input: PlanInput, rand: () => number = Math.random)
       const q = queues.get(m)!
       const ex = q[0]
       if (!ex) continue
-      const item: PlanItem = { uid: uid(), exerciseId: ex.id, ...defaultPrescription(ex, input.goal), restSec: defaultRest(ex, input) }
+      const item = newItem(ex)
       let next = [...workout.items, item]
       // A muscle with no work yet gets its first exercise even if that means fewer sets (down to 2).
       const uncovered = !covered.has(m)
@@ -221,10 +255,11 @@ export function generatePlan(input: PlanInput, rand: () => number = Math.random)
     .map(({ it }) => it)
 
   // Reordering changes which rest precedes each exercise, so trim sets if that pushed us over.
+  // With an exact count the exercises stay; only sets are trimmed.
   while (workout.items.length > 1 && !fits(workout.items)) {
-    const idx = workout.items.reduce((best, it, i) => (it.sets >= workout.items[best].sets ? i : best), 0)
-    const it = workout.items[idx]
-    workout.items = it.sets > 2 ? workout.items.map((x, i) => (i === idx ? { ...x, sets: x.sets - 1 } : x)) : workout.items.slice(0, -1)
+    if (trimOneSet()) continue
+    if (count) break
+    workout.items = workout.items.slice(0, -1)
   }
 
   return workout

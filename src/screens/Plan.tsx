@@ -3,7 +3,8 @@ import { Icon } from '../components/Icon'
 import { ExercisePicker, describe } from '../components/ExercisePicker'
 import { ExerciseSheet } from '../components/ExerciseSheet'
 import { Stepper } from '../components/ui'
-import { getExercise, type Exercise } from '../data/exercises'
+import { WeightField } from '../components/WeightField'
+import { MUSCLES, getExercise, type Exercise } from '../data/exercises'
 import { ExerciseAnimation } from '../figure/ExerciseAnimation'
 import {
   MAX_SETS,
@@ -20,6 +21,7 @@ import {
   type Workout,
 } from '../lib/planner'
 import { store } from '../lib/storage'
+import { formatKg, tracksWeight } from '../lib/weights'
 
 export function Plan({
   workout,
@@ -62,11 +64,13 @@ export function Plan({
 
   const choose = (ex: Exercise) => {
     if (!picker) return
+    // A different exercise starts from the weight last used for it (if any).
+    const weightKg = tracksWeight(ex.kit) ? store.lastWeights()[ex.id] : undefined
     if (picker.mode === 'swap') {
-      update(workout.items.map((i) => (i.uid === picker.uid ? { ...i, exerciseId: ex.id, ...keepOrDefault(i, ex, workout) } : i)))
+      update(workout.items.map((i) => (i.uid === picker.uid ? { ...i, exerciseId: ex.id, ...keepOrDefault(i, ex, workout), weightKg } : i)))
       notify(`Swapped in ${ex.name}`)
     } else {
-      update([...workout.items, { uid: uid(), exerciseId: ex.id, ...defaultPrescription(ex, workout.goal), restSec: defaultRest(ex, workout) }])
+      update([...workout.items, { uid: uid(), exerciseId: ex.id, ...defaultPrescription(ex, workout.goal), restSec: defaultRest(ex, workout), weightKg }])
       notify(`Added ${ex.name}`)
     }
     setPicker(null)
@@ -112,6 +116,12 @@ export function Plan({
           {workout.items.length} exercises, {totalSets} sets
         </p>
         {over && <p className="warn-note">That's {formatDuration(est - target)} over. Drop a set or shorten the rest.</p>}
+        {workout.requestedCount && workout.items.length < workout.requestedCount && (
+          <p className="warn-note">
+            You asked for {workout.requestedCount}, but only {workout.items.length} {workout.muscles.map((m) => MUSCLES.find((x) => x.id === m)!.label.toLowerCase()).join(' and ')} exercises
+            match your equipment. Pick another muscle or more equipment for more.
+          </p>
+        )}
       </header>
 
       <div className="rows">
@@ -142,6 +152,7 @@ export function Plan({
                   <span className="scheme">
                     {it.sets} × {it.reps}
                     {ex.timed ? ' s' : ''}
+                    {it.weightKg !== undefined && <span className="plan-item__weight">{formatKg(it.weightKg)} kg</span>}
                     <span className="plan-item__rest">{formatClock(restFor(it, workout))} rest</span>
                     <span className="plan-item__edit">{open ? 'Done' : 'Edit'}</span>
                   </span>
@@ -170,6 +181,12 @@ export function Plan({
                       onChange={(reps) => patch(it.uid, { reps })}
                     />
                   </div>
+                  {tracksWeight(ex.kit) && (
+                    <div className="control">
+                      <span className="control__label">Weight</span>
+                      <WeightField kit={ex.kit} label={`${ex.name} weight`} value={it.weightKg} onChange={(weightKg) => patch(it.uid, { weightKg })} />
+                    </div>
+                  )}
                   <div className="control">
                     <span className="control__label">Rest after each set</span>
                     <Stepper label={`${ex.name} rest`} value={restFor(it, workout)} min={15} max={300} step={15} format={formatClock} onChange={(restSec) => patch(it.uid, { restSec })} />

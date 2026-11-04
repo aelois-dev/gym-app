@@ -1,7 +1,7 @@
 import { Icon } from '../components/Icon'
 import { Segmented, Stepper } from '../components/ui'
 import { EQUIPMENT, MUSCLES, type Muscle } from '../data/exercises'
-import { GOALS, formatClock, formatDuration, estimateSeconds, type Workout } from '../lib/planner'
+import { GOALS, MAX_EXERCISES, formatClock, formatDuration, estimateSeconds, type Workout } from '../lib/planner'
 import type { ActiveSession, Prefs } from '../lib/storage'
 
 const TIME_PRESETS = [20, 30, 45, 60, 90]
@@ -133,6 +133,20 @@ export function Setup({
       <div className="rows">
         <div className="row">
           <div className="row__text">
+            <h2>Number of exercises</h2>
+            <p>{prefs.exerciseCount ? `Exactly ${prefs.exerciseCount}; sets adjust to fit your time` : 'Auto fits as many as your time allows'}</p>
+          </div>
+          <Stepper
+            label="Number of exercises"
+            value={prefs.exerciseCount ?? 0}
+            min={0}
+            max={MAX_EXERCISES}
+            onChange={(n) => onChange({ ...prefs, exerciseCount: n === 0 ? null : n })}
+            format={(n) => (n === 0 ? 'Auto' : String(n))}
+          />
+        </div>
+        <div className="row">
+          <div className="row__text">
             <h2>Rest after compound lifts</h2>
             <p>Squats, presses, rows and other multi-joint moves</p>
           </div>
@@ -159,7 +173,11 @@ export function Setup({
 
       <div className="cta-bar">
         <button className="btn btn--primary btn--block btn--lg" disabled={!ready} onClick={onBuild}>
-          {ready ? `Build a ${prefs.minutes}-minute workout` : 'Choose a muscle to start'}
+          {!ready
+            ? 'Choose a muscle to start'
+            : prefs.exerciseCount
+              ? `Build ${prefs.exerciseCount} exercise${prefs.exerciseCount === 1 ? '' : 's'} in ${prefs.minutes} minutes`
+              : `Build a ${prefs.minutes}-minute workout`}
         </button>
       </div>
     </main>

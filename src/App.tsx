@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Icon } from './components/Icon'
 import { Toast } from './components/ui'
-import { DEFAULT_REST, generatePlan, type Workout } from './lib/planner'
+import { DEFAULT_REST, generatePlan, type PlanInput, type Workout } from './lib/planner'
+import { withLastWeights } from './lib/weights'
 import { store, type ActiveSession, type HistoryEntry, type Prefs } from './lib/storage'
 import { Library } from './screens/Library'
 import { Plan } from './screens/Plan'
@@ -20,6 +21,7 @@ const DEFAULT_PREFS: Prefs = {
   restIsolation: DEFAULT_REST.isolation,
   warmup: true,
   sound: true,
+  exerciseCount: null,
 }
 
 export default function App() {
@@ -46,8 +48,11 @@ export default function App() {
     window.scrollTo({ top: 0 })
   }, [screen])
 
+  /** New plans start at the weights you last lifted. */
+  const plan = (input: PlanInput) => withLastWeights(generatePlan(input), store.lastWeights())
+
   const build = () => {
-    setWorkout(generatePlan(prefs))
+    setWorkout(plan({ ...prefs, count: prefs.exerciseCount }))
     setScreen('plan')
   }
 
@@ -64,6 +69,7 @@ export default function App() {
     setSession(null)
     if (entry) {
       store.addHistory(entry)
+      store.rememberWeights(entry)
       setSummary(entry)
       setScreen('summary')
     } else {
@@ -96,7 +102,7 @@ export default function App() {
           workout={workout}
           onChange={setWorkout}
           onBack={() => setScreen('setup')}
-          onRegenerate={() => setWorkout(generatePlan({ ...prefs, ...pickPlanInputs(workout) }))}
+          onRegenerate={() => setWorkout(plan({ ...prefs, ...pickPlanInputs(workout) }))}
           onStart={() => start(workout)}
           notify={notify}
         />
@@ -119,7 +125,8 @@ export default function App() {
       )}
       {screen === 'library' && (
         <Library
-          onOpen={(w) => {
+          onOpen={(saved) => {
+            const w = withLastWeights(saved, store.lastWeights())
             setWorkout(w)
             setScreen('plan')
           }}
@@ -151,6 +158,7 @@ function pickPlanInputs(w: Workout) {
     equipment: w.equipment,
     goal: w.goal,
     warmup: w.warmup,
+    count: w.requestedCount ?? null,
     ...(w.restCompound !== undefined ? { restCompound: w.restCompound } : {}),
     ...(w.restIsolation !== undefined ? { restIsolation: w.restIsolation } : {}),
   }

@@ -5,7 +5,9 @@ import { ProgressRing, Sheet } from '../components/ui'
 import { ExerciseAnimation, animationCaption } from '../figure/ExerciseAnimation'
 import { getExercise } from '../data/exercises'
 import { alarm, keepAwake, tick, unlockAudio } from '../lib/feedback'
-import { WARMUP_SEC, formatClock, restFor, uid, type Workout } from '../lib/planner'
+import { WARMUP_SEC, formatClock, restFor, uid, type PlanItem, type Workout } from '../lib/planner'
+import { tracksWeight } from '../lib/weights'
+import { WeightField } from '../components/WeightField'
 import type { ActiveSession, HistoryEntry } from '../lib/storage'
 import { useNow } from '../lib/timer'
 
@@ -79,7 +81,16 @@ export function Session({
     return () => keepAwake(false)
   }, [])
 
-  const makeEntry = (d: Record<string, number>): HistoryEntry => ({
+  const logged = session.weights ?? {}
+  /** The weight shown for the set in progress: what was typed, else the last set's, else the plan's. */
+  const weightNow = (it: PlanItem): number | undefined => {
+    const typed = session.current?.[it.uid]
+    if (typed !== undefined) return typed ?? undefined
+    const prev = [...(logged[it.uid] ?? [])].reverse().find((w) => typeof w === 'number')
+    return prev ?? it.weightKg
+  }
+
+  const makeEntry = (d: Record<string, number>, wts: Record<string, (number | null)[]> = logged): HistoryEntry => ({
     id: uid(),
     finishedAt: Date.now(),
     name: workout.name,
@@ -90,24 +101,39 @@ export function Session({
     totalSets,
     exercises: workout.items.map((it) => {
       const ex = getExercise(it.exerciseId)
-      return { name: ex.name, setsDone: d[it.uid] ?? 0, sets: it.sets, reps: it.reps, ...(ex.timed ? { timed: true } : {}) }
+      return {
+        exerciseId: ex.id,
+        name: ex.name,
+        setsDone: d[it.uid] ?? 0,
+        sets: it.sets,
+        reps: it.reps,
+        ...(ex.timed ? { timed: true } : {}),
+        ...(wts[it.uid]?.some((w) => w !== null) ? { weights: wts[it.uid] } : {}),
+      }
     }),
   })
 
-  const goTo = (index: number, d: Record<string, number> = done) => {
+  const goTo = (index: number, d: Record<string, number> = done, extra: Partial<ActiveSession> = {}) => {
     if (index >= steps.length) {
-      onFinish(makeEntry(d))
+      onFinish(makeEntry(d, extra.weights ?? logged))
       return
     }
     lastTick.current = null
-    onUpdate({ ...session, stepIndex: index, done: d, endAt: endAtFor(steps[index], workout, Date.now()) })
+    onUpdate({ ...session, ...extra, stepIndex: index, done: d, endAt: endAtFor(steps[index], workout, Date.now()) })
   }
 
   const completeSet = () => {
     if (!step || step.kind !== 'work') return
-    const id = workout.items[step.item].uid
-    goTo(stepIndex + 1, { ...done, [id]: (done[id] ?? 0) + 1 })
+    const it = workout.items[step.item]
+    const id = it.uid
+    const kg = tracksWeight(getExercise(it.exerciseId).kit) ? weightNow(it) : undefined
+    // Log this set's weight; the next set starts from it.
+    const weights = { ...logged, [id]: [...(logged[id] ?? []), kg ?? null] }
+    const { [id]: _typed, ...current } = session.current ?? {}
+    goTo(stepIndex + 1, { ...done, [id]: (done[id] ?? 0) + 1 }, { weights, current })
   }
+
+  const setWeight = (it: PlanItem, kg: number | undefined) => onUpdate({ ...session, current: { ...(session.current ?? {}), [it.uid]: kg ?? null } })
 
   const skipExercise = () => {
     if (!step || step.kind === 'warmup') return goTo(stepIndex + 1)
@@ -225,7 +251,7 @@ export function Session({
             </ProgressRing>
           ) : (
             <div>
-              <button className="work-demo" onClick={() => setDemo(true)} aria-label={`Show ${ex.name} demo and form tip`}>
+              <button className={`work-demo ${tracksWeight(ex.kit) ? 'work-demo--compact' : ''}`} onClick={() => setDemo(true)} aria-label={`Show ${ex.name} demo and form tip`}>
                 <ExerciseAnimation exerciseId={ex.id} />
               </button>
               {animationCaption(ex.id) && <p className="fig-caption">{animationCaption(ex.id)}</p>}
@@ -246,6 +272,11 @@ export function Session({
               </span>
             </span>
           </div>
+          {tracksWeight(ex.kit) && (
+            <div className="work-weight">
+              <WeightField kit={ex.kit} size="lg" label={`${ex.name} weight for set ${step.set}`} value={weightNow(item)} onChange={(kg) => setWeight(item, kg)} />
+            </div>
+          )}
           <p className="cue cue--work">{ex.cue}</p>
         </section>
       )}

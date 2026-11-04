@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Icon } from '../components/Icon'
 import { formatClock, type Workout } from '../lib/planner'
 import { store, type HistoryEntry } from '../lib/storage'
+import { formatWeights } from '../lib/weights'
 
 export function Summary({ entry, workout, onDone, notify }: { entry: HistoryEntry; workout: Workout | null; onDone: () => void; notify: (m: string) => void }) {
   const [saved, setSaved] = useState(() => (workout ? store.isSaved(workout.id) : true))
@@ -43,7 +44,11 @@ export function Summary({ entry, workout, onDone, notify }: { entry: HistoryEntr
             </span>
             <span className="log__text">
               <strong>{e.name}</strong>
-              <span className="muted">{e.setsDone === 0 ? 'Skipped' : `${e.setsDone} of ${e.sets} sets of ${e.reps}${e.timed ? ' s' : ''}`}</span>
+              <span className="muted">
+                {e.setsDone === 0
+                  ? 'Skipped'
+                  : `${e.setsDone} of ${e.sets} sets of ${e.reps}${e.timed ? ' s' : ''}${formatWeights(e.weights) ? ` at ${formatWeights(e.weights)}` : ''}`}
+              </span>
             </span>
           </li>
         ))}
