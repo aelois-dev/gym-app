@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
+import { ExerciseSheet } from '../components/ExerciseSheet'
 import { ProgressRing, Sheet } from '../components/ui'
+import { ExerciseAnimation } from '../figure/ExerciseAnimation'
 import { KIT_LABEL, getExercise, muscleLabel } from '../data/exercises'
 import { alarm, keepAwake, tick, unlockAudio } from '../lib/feedback'
 import { WARMUP_SEC, formatClock, uid, type Workout } from '../lib/planner'
@@ -51,6 +53,7 @@ export function Session({
   const step = steps[stepIndex]
   const now = useNow()
   const [menu, setMenu] = useState(false)
+  const [demo, setDemo] = useState(false)
   const [flashUntil, setFlashUntil] = useState(0)
   const lastTick = useRef<number | null>(null)
 
@@ -189,14 +192,20 @@ export function Session({
             <span className="ring__time">{formatClock(remaining)}</span>
             <span className="ring__label">of {formatClock(workout.restSec)}</span>
           </ProgressRing>
-          <div className="next-card">
-            <span className="eyebrow">{step.set === 1 ? 'Next exercise' : 'Up next'}</span>
-            <strong>{ex.name}</strong>
-            <span className="muted">
-              Set {step.set} of {item.sets} · {item.reps} {ex.timed ? 'sec' : 'reps'}
+          <button className="next-card" onClick={() => setDemo(true)} aria-label={`Up next: ${ex.name}. Show demo`}>
+            {step.set === 1 && (
+              <span className="next-card__demo">
+                <ExerciseAnimation exerciseId={ex.id} />
+              </span>
+            )}
+            <span className="next-card__text">
+              <span className="eyebrow">{step.set === 1 ? 'Next exercise' : 'Up next'}</span>
+              <strong>{ex.name}</strong>
+              <span className="muted">
+                Set {step.set} of {item.sets} · {item.reps} {ex.timed ? 'sec' : 'reps'}
+              </span>
             </span>
-            {step.set === 1 && <p className="tip">{ex.cue}</p>}
-          </div>
+          </button>
         </section>
       )}
 
@@ -232,10 +241,17 @@ export function Session({
             Set {step.set} of {item.sets}
           </p>
 
-          <div className="tip-card">
-            <Icon name="info" size={18} />
-            <p>{ex.cue}</p>
-          </div>
+          <button className="tip-card" onClick={() => setDemo(true)}>
+            <span className="tip-card__demo">
+              <ExerciseAnimation exerciseId={ex.id} />
+            </span>
+            <span className="tip-card__text">
+              <span>{ex.cue}</span>
+              <span className="tip-card__link">
+                <Icon name="play" size={12} /> Watch demo
+              </span>
+            </span>
+          </button>
         </section>
       )}
 
@@ -282,6 +298,8 @@ export function Session({
           </button>
         </div>
       </div>
+
+      <ExerciseSheet exerciseId={demo && ex ? ex.id : null} sets={item?.sets} reps={item?.reps} onClose={() => setDemo(false)} />
 
       <Sheet open={menu} title="End workout?" onClose={() => setMenu(false)}>
         <p className="sheet__text">

@@ -8,7 +8,7 @@ A mobile-first web app that builds a gym workout from the muscles you want to tr
 - **Equipment:** Full gym, Dumbbells, or Bodyweight. Exercises are filtered to match.
 - **Goal-based presets:** Strength 4×5, Muscle 3×10, Endurance 3×15 (compound lifts get +1 set). Every set and rep count can be edited.
 - **You set the rest time** (15 s to 5 min). The time estimate updates as you edit the plan.
-- **Swap, add, reorder or remove exercises.** Each exercise has a form tip.
+- **Swap, add, reorder or remove exercises.** Tap ⓘ on any exercise to see an animated demo of the movement along with its form tip. During a workout the demo also appears on the set screen and before each new exercise.
 - **Guided session:** tap *Set done* to start the rest countdown, with a beep and vibration when it ends. Rest can be changed by ±15 s or skipped. Timed holds (plank, wall sit) count down on their own. An optional 5-minute warm-up runs first.
 - **Keeps the screen awake** during a workout (Wake Lock API).
 - **Timers are based on timestamps,** so they stay accurate if the phone locks or you switch apps. Sessions can be resumed later.
@@ -60,5 +60,6 @@ Install it as an app from the browser's **Add to Home Screen** option. Service w
 | `src/data/exercises.ts` | Exercise library (~85 moves) with muscle, equipment, compound flag and form cue |
 | `src/lib/planner.ts` | Time-budgeted plan generator, time estimate, swap/add candidates |
 | `src/lib/storage.ts` | localStorage for history, saved workouts, in-progress session and preferences |
+| `src/figure/*` | Animated exercise demos: a 2D mannequin rig (forward kinematics plus 2-bone IK) and the movement patterns each exercise maps to. Preview every animation at `/?figures` in `npm run dev`. |
 | `src/lib/feedback.ts` | Web Audio beeps, vibration, Wake Lock |
 | `src/screens/*` | Setup → Plan → Session → Summary, plus Library |

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Icon } from '../components/Icon'
+import { ExerciseSheet } from '../components/ExerciseSheet'
 import { Sheet, Stepper } from '../components/ui'
 import { KIT_LABEL, getExercise, muscleLabel, type Exercise } from '../data/exercises'
 import {
@@ -32,7 +33,7 @@ export function Plan({
   notify: (msg: string) => void
 }) {
   const [picker, setPicker] = useState<{ mode: 'swap'; uid: string } | { mode: 'add' } | null>(null)
-  const [openTip, setOpenTip] = useState<string | null>(null)
+  const [demo, setDemo] = useState<string | null>(null)
   const [saved, setSaved] = useState(() => store.isSaved(workout.id))
 
   const est = estimateSeconds(workout)
@@ -155,15 +156,13 @@ export function Plan({
                   </div>
                 </div>
                 <button
-                  className={`icon-btn icon-btn--sm ${openTip === it.uid ? 'is-on' : ''}`}
-                  aria-label="Form tip"
-                  aria-expanded={openTip === it.uid}
-                  onClick={() => setOpenTip(openTip === it.uid ? null : it.uid)}
+                  className="icon-btn icon-btn--sm"
+                  aria-label={`Show ${ex.name} demo and form tip`}
+                  onClick={() => setDemo(it.uid)}
                 >
                   <Icon name="info" size={18} />
                 </button>
               </div>
-              {openTip === it.uid && <p className="tip">{ex.cue}</p>}
               <div className="ex-card__controls">
                 <div className="control">
                   <span className="control__label">Sets</span>
@@ -221,6 +220,26 @@ export function Plan({
           <span className="btn__meta">{formatDuration(est)}</span>
         </button>
       </div>
+
+      {(() => {
+        const it = workout.items.find((i) => i.uid === demo)
+        return (
+          <ExerciseSheet
+            exerciseId={it ? it.exerciseId : null}
+            sets={it?.sets}
+            reps={it?.reps}
+            onClose={() => setDemo(null)}
+            onSwap={
+              it && swapCandidates(workout, it.exerciseId).length > 0
+                ? () => {
+                    setDemo(null)
+                    setPicker({ mode: 'swap', uid: it.uid })
+                  }
+                : undefined
+            }
+          />
+        )
+      })()}
 
       <Sheet open={!!picker} title={picker?.mode === 'swap' ? 'Swap exercise' : 'Add exercise'} onClose={() => setPicker(null)}>
         {candidates.length === 0 ? (

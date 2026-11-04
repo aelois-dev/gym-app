@@ -376,3 +376,41 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- exercise figure ---------- */
+:root {
+  --fig: var(--text);
+  --fig-far: color-mix(in srgb, var(--text) 34%, var(--surface-2));
+  --fig-prop: color-mix(in srgb, var(--text) 16%, var(--surface-2));
+}
+.fig { display: block; width: 100%; height: auto; aspect-ratio: 5 / 4; overflow: hidden; }
+.fig path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.fig-near path { stroke: var(--fig); }
+.fig-far path { stroke: var(--fig-far); }
+.fig-head { fill: var(--fig); }
+.fig-floor { stroke: var(--line); stroke-width: 2; }
+.fig-prop { fill: var(--fig-prop); }
+.fig .fig-prop-line { stroke: var(--fig-prop); }
+.fig-load { fill: var(--accent); stroke: var(--accent-ink); stroke-width: 1.6; }
+.fig-load--far { opacity: 0.5; }
+.fig-load-hub { fill: var(--accent-ink); stroke: none; }
+.fig .fig-cable { stroke: var(--text-3); stroke-dasharray: 0; }
+.fig-pulley { fill: var(--surface); stroke: var(--text-3); stroke-width: 2; }
+.fig-pad { fill: var(--fig-prop); stroke: var(--text-3); stroke-width: 1.5; }
+
+/* ---------- exercise detail ---------- */
+.ex-detail { display: flex; flex-direction: column; gap: 14px; }
+.demo { background: var(--surface-2); border-radius: 16px; padding: 14px 10px 6px; }
+.demo .fig { max-height: 42dvh; }
+.ex-detail__tip { background: var(--accent-soft); border-radius: 14px; padding: 12px 14px; }
+.ex-detail__tip h3 { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-ink); margin-bottom: 4px; }
+.ex-detail__tip p { font-size: 15px; color: var(--text); }
+
+button.tip-card { align-items: center; padding: 10px 14px 10px 10px; }
+.tip-card__demo { width: 84px; flex: none; background: var(--surface-2); border-radius: 12px; padding: 4px; }
+.tip-card__text { display: flex; flex-direction: column; gap: 6px; font-size: 14.5px; line-height: 1.4; }
+.tip-card__link { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 650; color: var(--accent-ink); }
+
+button.next-card { flex-direction: row; align-items: center; gap: 12px; }
+.next-card__demo { width: 88px; flex: none; background: var(--surface-2); border-radius: 12px; padding: 4px; }
+.next-card__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
