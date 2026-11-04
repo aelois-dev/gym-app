@@ -7,7 +7,7 @@ A mobile-first web app that builds a gym workout from the muscles you want to tr
 - **Plan by muscle and time:** pick any mix of Chest, Back, Shoulders, Biceps, Triceps, Legs, Glutes and Core, then set 15–120 minutes.
 - **Equipment:** Full gym, Dumbbells, or Bodyweight. Exercises are filtered to match.
 - **Goal-based presets:** Strength 4×5, Muscle 3×10, Endurance 3×15 (compound lifts get +1 set). Every set and rep count can be edited.
-- **You set the rest time** (15 s to 5 min). The time estimate updates as you edit the plan.
+- **Rest per exercise:** 3:00 by default after compound lifts and 2:00 after everything else. You can change both defaults on the setup screen and adjust any exercise's rest on the plan. The time estimate updates as you edit.
 - **Animated exercise demos:** a jointed mannequin performs every exercise, with the muscle it works shown in red. Tap a plan row's thumbnail to watch it. When you swap or add an exercise, you can preview each option before choosing it.
 - **Swap, add, reorder or remove exercises,** each with a form tip.
 - **Guided session:** tap *Set done* to start the rest countdown, with a beep and vibration when it ends. Rest can be changed by ±15 s or skipped. Timed holds (plank, wall sit) count down on their own. An optional 5-minute warm-up runs first.
@@ -58,7 +58,7 @@ Install it as an app from the browser's **Add to Home Screen** option. Service w
 
 | Path | What it does |
 | --- | --- |
-| `src/data/exercises.ts` | Exercise library (~85 moves) with muscle, equipment, compound flag and form cue |
+| `src/data/exercises.ts` | Exercise library (129 moves) with muscle, equipment, compound flag and form cue |
 | `src/lib/planner.ts` | Time-budgeted plan generator, time estimate, swap/add candidates |
 | `src/lib/storage.ts` | localStorage for history, saved workouts, in-progress session and preferences |
 | `src/figure/*` | Animated exercise demos: a 2D mannequin rig (forward kinematics plus 2-bone IK) and the movement patterns each exercise maps to. Preview every animation at `/?figures` in `npm run dev`. |

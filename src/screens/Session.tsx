@@ -5,7 +5,7 @@ import { ProgressRing, Sheet } from '../components/ui'
 import { ExerciseAnimation, animationCaption } from '../figure/ExerciseAnimation'
 import { getExercise } from '../data/exercises'
 import { alarm, keepAwake, tick, unlockAudio } from '../lib/feedback'
-import { WARMUP_SEC, formatClock, uid, type Workout } from '../lib/planner'
+import { WARMUP_SEC, formatClock, restFor, uid, type Workout } from '../lib/planner'
 import type { ActiveSession, HistoryEntry } from '../lib/storage'
 import { useNow } from '../lib/timer'
 
@@ -24,10 +24,17 @@ export function buildSteps(w: Workout): Step[] {
   return steps
 }
 
+/** Rest before a set uses the rest of the exercise just finished (the previous item between exercises). */
+function restOfStep(step: Step, w: Workout): number {
+  if (step.kind !== 'rest') return 0
+  const from = step.set > 1 ? step.item : step.item - 1
+  return restFor(w.items[Math.max(0, from)], w)
+}
+
 function endAtFor(step: Step | undefined, w: Workout, now: number): number | null {
   if (!step) return null
   if (step.kind === 'warmup') return now + WARMUP_SEC * 1000
-  if (step.kind === 'rest') return now + w.restSec * 1000
+  if (step.kind === 'rest') return now + restOfStep(step, w) * 1000
   return null
 }
 
@@ -185,9 +192,9 @@ export function Session({
       {step.kind === 'rest' && item && ex && (
         <section className="stage">
           <h1 className="display">Rest</h1>
-          <ProgressRing progress={1 - remaining / workout.restSec} size={250}>
+          <ProgressRing progress={1 - remaining / restOfStep(step, workout)} size={250}>
             <span className="ring__time num">{formatClock(remaining)}</span>
-            <span className="ring__label">of {formatClock(workout.restSec)}</span>
+            <span className="ring__label">of {formatClock(restOfStep(step, workout))}</span>
           </ProgressRing>
           <button className="next-row" onClick={() => setDemo(true)} aria-label={`Next: ${ex.name}. Watch the demo`}>
             <span className="thumb thumb--lg">

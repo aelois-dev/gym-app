@@ -9,6 +9,8 @@ import {
   MAX_SETS,
   addCandidates,
   defaultPrescription,
+  defaultRest,
+  restFor,
   estimateSeconds,
   formatClock,
   formatDuration,
@@ -64,7 +66,7 @@ export function Plan({
       update(workout.items.map((i) => (i.uid === picker.uid ? { ...i, exerciseId: ex.id, ...keepOrDefault(i, ex, workout) } : i)))
       notify(`Swapped in ${ex.name}`)
     } else {
-      update([...workout.items, { uid: uid(), exerciseId: ex.id, ...defaultPrescription(ex, workout.goal) }])
+      update([...workout.items, { uid: uid(), exerciseId: ex.id, ...defaultPrescription(ex, workout.goal), restSec: defaultRest(ex, workout) }])
       notify(`Added ${ex.name}`)
     }
     setPicker(null)
@@ -113,13 +115,6 @@ export function Plan({
       </header>
 
       <div className="rows">
-        <div className="row">
-          <div className="row__text">
-            <h2>Rest between sets</h2>
-            <p>Used for every exercise</p>
-          </div>
-          <Stepper label="Rest time" value={workout.restSec} min={15} max={300} step={15} format={formatClock} onChange={(restSec) => commit({ ...workout, restSec })} />
-        </div>
         {workout.warmup && (
           <div className="row">
             <div className="row__text">
@@ -147,6 +142,7 @@ export function Plan({
                   <span className="scheme">
                     {it.sets} × {it.reps}
                     {ex.timed ? ' s' : ''}
+                    <span className="plan-item__rest">{formatClock(restFor(it, workout))} rest</span>
                     <span className="plan-item__edit">{open ? 'Done' : 'Edit'}</span>
                   </span>
                 </button>
@@ -173,6 +169,10 @@ export function Plan({
                       step={ex.timed ? 5 : 1}
                       onChange={(reps) => patch(it.uid, { reps })}
                     />
+                  </div>
+                  <div className="control">
+                    <span className="control__label">Rest after each set</span>
+                    <Stepper label={`${ex.name} rest`} value={restFor(it, workout)} min={15} max={300} step={15} format={formatClock} onChange={(restSec) => patch(it.uid, { restSec })} />
                   </div>
                   <div className="plan-item__actions">
                     <button className="tool" onClick={() => move(idx, -1)} disabled={idx === 0} aria-label="Move up">
@@ -248,6 +248,8 @@ export function Plan({
 /** When swapping, keep the user's numbers unless the new exercise uses a different unit (reps vs seconds). */
 function keepOrDefault(item: PlanItem, next: Exercise, workout: Workout) {
   const prev = getExercise(item.exerciseId)
-  if (!!prev.timed === !!next.timed) return { sets: item.sets, reps: item.reps }
-  return defaultPrescription(next, workout.goal)
+  // Rest follows the new exercise's default unless the user had changed it.
+  const restSec = restFor(item, workout) === defaultRest(prev, workout) ? defaultRest(next, workout) : restFor(item, workout)
+  if (!!prev.timed === !!next.timed) return { sets: item.sets, reps: item.reps, restSec }
+  return { ...defaultPrescription(next, workout.goal), restSec }
 }

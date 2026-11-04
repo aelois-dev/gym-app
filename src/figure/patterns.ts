@@ -33,6 +33,8 @@ export interface Pattern {
   caption?: string
   /** Machine pads along the forearms (pec deck). */
   armPads?: boolean
+  /** Front view: only the near hand holds a cable (both hands share one handle). */
+  singleCable?: boolean
 }
 
 export const FLOOR = 149
@@ -125,7 +127,7 @@ export const PATTERNS = {
     a: { hip: [94, 132], t: -55, arm: w(94, 124), leg: w(126, ANKLE) },
     b: { hip: [102, 108], t: -90, arm: w(102, 100), leg: w(126, ANKLE) },
     props: [{ kind: 'bench', x: 28, y: 114, w: 40 }],
-    loadAt: { on: 'hip', offset: [0, -9] },
+    loadAt: { on: 'hip', offset: [9, 0] },
   },
   bridge: {
     a: floorBack(fk(90, 90), w(124, ANKLE), { hip: [92, 140] }),
@@ -210,6 +212,7 @@ export const PATTERNS = {
     view: 'front',
     a: { hip: [100, 86], t: 0, pitch: 62, arm: v3([0.12, -1, 0.25], [0.1, -1, 0.3]), leg: fk(5, 3) },
     b: { hip: [100, 86], t: 0, pitch: 62, arm: v3([1, -0.1, 0.1], [1, -0.2, 0.1]), leg: fk(5, 3) },
+    anchor: [178, 76],
   },
 
   // ---------- back ----------
@@ -299,6 +302,7 @@ export const PATTERNS = {
   kickback: {
     a: { hip: [88, 88], t: 70, arm: fk(-80, 0), arm2: fk(30, 30), leg: feet(102) },
     b: { hip: [88, 88], t: 70, arm: fk(-80, -82), arm2: fk(30, 30), leg: feet(102) },
+    anchor: [160, 140],
   },
   dip: {
     a: { hip: [97, 81], t: 8, arm: w(102, 86), leg: fk(18, -78), foot: -40 },
@@ -334,7 +338,7 @@ export const PATTERNS = {
     anchor: [112, -16],
   },
   pallof: {
-    a: { hip: STAND_HIP, t: 0, arm: sh(12, 16), leg: feet(102), leg2: w(90, ANKLE) },
+    a: { hip: STAND_HIP, t: 0, arm: w(108, 60), leg: feet(102), leg2: w(90, ANKLE) },
     b: { hip: STAND_HIP, t: 0, arm: w(140, 62), leg: feet(102), leg2: w(90, ANKLE) },
     anchor: [30, 62],
   },
@@ -363,6 +367,139 @@ export const PATTERNS = {
     a: { hip: [98, 117], t: 66, arm: w(138, ANKLE), leg: w(44, 142), leg2: w(44, 142), foot: 15, foot2: 15 },
     b: { hip: [100, 115], t: 68, arm: w(138, ANKLE), leg: w(114, 136), leg2: w(44, 142), foot: 40, foot2: 15 },
     dur: 1.1,
+  },
+
+  // ---------- added movements ----------
+  declinePress: {
+    a: { hip: [106, 100], t: -112, arm: w(78, 104), leg: w(136, 126, -1), foot: 150 },
+    b: { hip: [106, 100], t: -112, arm: w(74, 70), leg: w(136, 126, -1), foot: 150 },
+    props: [{ kind: 'pad', from: [116, 106], to: [50, 130], w: 8 }, { kind: 'pad', from: [140, 120], to: [140, 132], w: 7 }],
+  },
+  lowCableFly: {
+    view: 'front',
+    a: { hip: [100, 84], t: 0, arm: v3([0.9, -0.45, 0.1], [0.9, -0.4, 0.15]), leg: fk(5, 3) },
+    b: { hip: [100, 84], t: 0, arm: v3([0.15, 0.35, 0.9], [-0.4, 0.3, 0.85]), leg: fk(5, 3) },
+    anchor: [176, 140],
+  },
+  inclinePushUp: {
+    a: { hip: [104.8, 111.5], t: 60, arm: w(140, 112), leg: w(52, 142), foot: 15 },
+    b: { hip: [96.7, 98.5], t: 45.8, arm: w(140, 112), leg: w(52, 142), foot: 15 },
+    props: [{ kind: 'bench', x: 128, y: 116, w: 40 }],
+  },
+  rackPull: {
+    a: { hip: [88, 96], t: 32, arm: fk(0, 0), leg: feet(102) },
+    b: { hip: STAND_HIP, t: 0, arm: fk(0, 0), leg: feet(102) },
+    props: [{ kind: 'pad', from: [74, 118], to: [74, 149], w: 4 }],
+  },
+  goodMorning: {
+    a: { hip: STAND_HIP, t: 0, arm: sh(-9, 4, -1), leg: feet(102) },
+    b: { hip: [86, 88], t: 75, arm: sh(-9, 4, -1), leg: feet(102) },
+    loadAt: { on: 'shoulder', offset: [-11, 3] },
+  },
+  renegadeRow: {
+    a: { hip: [98, 117], t: 66, arm: w(140, 145), arm2: w(134, 145), leg: w(44, 142), foot: 15 },
+    b: { hip: [98, 117], t: 66, arm: w(126, 112), arm2: w(134, 145), leg: w(44, 142), foot: 15 },
+  },
+  backExtension: {
+    a: { hip: [100, 92], t: 140, arm: sh(10, 14), leg: fk(-45, -45), foot: -135 },
+    b: { hip: [100, 92], t: 45, arm: sh(10, 14), leg: fk(-45, -45), foot: -135 },
+    props: [
+      { kind: 'pad', from: [60, 146], to: [104, 104], w: 3 },
+      { kind: 'pad', from: [108, 98], to: [94, 112], w: 10 },
+      { kind: 'pad', from: [50, 142], to: [62, 130], w: 6 },
+    ],
+  },
+  uprightRow: { a: stand(w(102, 90, -1)), b: stand(w(104, 40, -1)), anchor: [104, ANKLE] },
+  reversePecDeck: {
+    view: 'front',
+    a: { hip: [100, 112], t: 0, arm: v3([0.12, 0, 1], [0.1, 0, 1]), leg: v3([0.3, -0.15, 1], [0.05, -1, 0.05]), foot: 20 },
+    b: { hip: [100, 112], t: 0, arm: v3([1, 0, 0.05], [1, 0, 0.05]), leg: v3([0.3, -0.15, 1], [0.05, -1, 0.05]), foot: 20 },
+    props: [
+      { kind: 'rect', x: 97, y: 118, w: 6, h: 31, tone: 'steel' },
+      { kind: 'rect', x: 80, y: 110, w: 40, h: 8, tone: 'pad' },
+    ],
+  },
+  hackSquat: {
+    a: { hip: [94, 86], t: -22, arm: sh(6, -2), leg: w(114, 138) },
+    b: { hip: [76, 112], t: -20, arm: sh(6, -2), leg: w(114, 138) },
+    props: [{ kind: 'pad', from: [104, 146], to: [128, 136], w: 6 }],
+    pads: [{ on: 'shoulder', offset: [-7, -2] }],
+  },
+  seatedCalfRaise: {
+    a: { hip: [86, 108], t: 0, arm: fk(30, 70), leg: w(116, ANKLE) },
+    b: { hip: [86, 108], t: 0, arm: fk(30, 70), leg: w(116, 138), foot: 40 },
+    props: [{ kind: 'bench', x: 62, y: 112, w: 40 }],
+    pads: [{ on: 'knee', offset: [-4, -8] }],
+    dur: 1.8,
+  },
+  nordicCurl: {
+    a: { hip: [100, 110], t: 0, arm: sh(10, 14), leg: fk(0, -90), foot: -160 },
+    b: { hip: [125.4, 123.2], t: 55, arm: sh(10, 14), leg: fk(-55, -90), foot: -160 },
+    props: [{ kind: 'pad', from: [92, 147], to: [110, 147], w: 4 }],
+    pads: [{ on: 'ankle' }],
+  },
+  pistolSquat: {
+    a: { hip: [96, 84], t: 0, arm: fk(90, 90), leg: feet(), leg2: fk(20, 12) },
+    b: { hip: [80, 118], t: 40, arm: fk(90, 90), leg: feet(), leg2: fk(84, 88) },
+  },
+  lungeBarbell: {
+    a: { hip: [93, 90], t: 3, arm: sh(-9, 4, -1), leg: w(122, ANKLE), leg2: w(64, 141), foot2: 40 },
+    b: { hip: [93, 114], t: 3, arm: sh(-9, 4, -1), leg: w(122, ANKLE), leg2: w(64, 141), foot2: 40 },
+    loadAt: { on: 'shoulder', offset: [-11, 3] },
+  },
+  pullThrough: {
+    a: { hip: [84, 89], t: 72, arm: w(96, 130), leg: feet(104) },
+    b: { hip: STAND_HIP, t: 0, arm: w(104, 92), leg: feet(104) },
+    anchor: [22, 142],
+  },
+  bridgeBarbell: {
+    a: floorBack(w(92, 128), w(124, ANKLE), { hip: [92, 140] }),
+    b: floorBack(w(96, 108), w(124, ANKLE), { hip: [96, 118], t: -116 }),
+    loadAt: { on: 'hip', offset: [9, 0] },
+  },
+  dbSwing: {
+    a: { hip: [84, 92], t: 70, arm: w(94, 130), leg: feet(104) },
+    b: { hip: STAND_HIP, t: 0, arm: w(142, 48), leg: feet(104) },
+    dur: 1.6,
+  },
+  singleLegRdl: {
+    a: { hip: STAND_HIP, t: 0, arm: fk(0, 0), leg: feet(102), leg2: fk(-6, -6) },
+    b: { hip: [92, 88], t: 80, arm: fk(0, 0), leg: feet(102), leg2: fk(-84, -86), foot2: 0 },
+  },
+  crunch: {
+    a: floorBack(sh(-4, -12, 1), w(124, ANKLE), { t: -86 }),
+    b: floorBack(sh(-4, -12, 1), w(124, ANKLE), { t: -62 }),
+    dur: 2,
+  },
+  reverseCrunch: {
+    a: floorBack(fk(90, 90), fk(180, 95)),
+    b: floorBack(fk(90, 90), fk(215, 140), { hip: [102, 134], t: -98 }),
+  },
+  vUp: {
+    a: floorBack(fk(-90, -90), fk(90, 90), { hip: [100, 140], foot: 180 }),
+    // -210 is the same direction as 150 but makes the arms swing up over the head, not through the floor.
+    b: floorBack(fk(-210, -210), fk(135, 135), { hip: [100, 140], t: -45, foot: 225 }),
+  },
+  woodchop: {
+    view: 'front',
+    a: { hip: [100, 84], t: -6, arm: w(146, 24, 1), arm2: w(142, 27, -1), leg: fk(8, 4) },
+    b: { hip: [100, 84], t: 8, arm: w(66, 116, -1), arm2: w(70, 114, 1), leg: fk(8, 4) },
+    anchor: [176, -10],
+    singleCable: true,
+  },
+  farmerCarry: {
+    a: { hip: [96, 86], t: 0, arm: fk(2, 0), leg: w(112, ANKLE), leg2: w(80, ANKLE) },
+    b: { hip: [96, 86], t: 0, arm: fk(2, 0), leg: w(80, ANKLE), leg2: w(112, ANKLE) },
+    dur: 1.2,
+  },
+  hollowHold: {
+    a: floorBack(fk(-100, -100), fk(100, 100), { t: -80, foot: 190 }),
+    b: floorBack(fk(-102, -102), fk(102, 102), { t: -82, foot: 192 }),
+    hold: true,
+  },
+  birdDog: {
+    a: { hip: [92, 110], t: 74, arm: fk(0, 0), arm2: w(131, ANKLE), leg: fk(0, -90), leg2: fk(0, -90), foot: -150, foot2: -150 },
+    b: { hip: [92, 110], t: 74, arm: fk(95, 95), arm2: w(131, ANKLE), leg: fk(0, -90), leg2: fk(-92, -92), foot: -150, foot2: -90 },
   },
 } satisfies Record<string, Pattern>
 
@@ -458,6 +595,50 @@ export const EXERCISE_ANIMATION: Record<string, [PatternId, LoadKind?]> = {
   'dead-bug': ['deadBug'],
   'bicycle-crunch': ['bicycle'],
   'mountain-climber': ['mountainClimber'],
+  // added
+  'decline-bench': ['declinePress'],
+  'db-squeeze-press': ['benchPress'],
+  'low-cable-fly': ['lowCableFly'],
+  'incline-push-up': ['inclinePushUp'],
+  'archer-push-up': ['pushUp'],
+  't-bar-row': ['bentRow'],
+  'pendlay-row': ['bentRow'],
+  'rack-pull': ['rackPull'],
+  'good-morning': ['goodMorning'],
+  'machine-row': ['seatedRow', 'cable'],
+  'renegade-row': ['renegadeRow'],
+  'back-extension': ['backExtension'],
+  'push-press': ['ohp'],
+  'upright-row': ['uprightRow'],
+  'reverse-pec-deck': ['reversePecDeck', 'none'],
+  'cable-rear-delt-fly': ['rearDeltFront'],
+  'ez-bar-curl': ['curl'],
+  'reverse-curl': ['curl'],
+  'spider-curl': ['preacher'],
+  'zottman-curl': ['curl'],
+  'rope-hammer-curl': ['curl'],
+  'db-skull-crusher': ['skullCrusher'],
+  'rope-pushdown': ['pushdown'],
+  'cable-tricep-kickback': ['kickback'],
+  'assisted-dip': ['dip', 'none'],
+  'sumo-deadlift': ['deadlift'],
+  'barbell-lunge': ['lungeBarbell'],
+  'hack-squat': ['hackSquat', 'none'],
+  'seated-calf-raise': ['seatedCalfRaise', 'none'],
+  'pistol-squat': ['pistolSquat'],
+  'nordic-curl': ['nordicCurl'],
+  'barbell-glute-bridge': ['bridgeBarbell'],
+  'cable-pull-through': ['pullThrough'],
+  'db-swing': ['dbSwing'],
+  'single-leg-rdl': ['singleLegRdl'],
+  'frog-pump': ['bridge'],
+  'cable-woodchop': ['woodchop'],
+  'farmer-carry': ['farmerCarry'],
+  crunch: ['crunch'],
+  'reverse-crunch': ['reverseCrunch'],
+  'v-up': ['vUp'],
+  'hollow-hold': ['hollowHold'],
+  'bird-dog': ['birdDog'],
 }
 
 export function animationFor(exerciseId: string, kit: Kit): { pattern: Pattern; load: LoadKind } | null {

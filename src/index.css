@@ -259,6 +259,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .plan-item__name { font-size: 17px; font-weight: 650; line-height: 1.25; }
 .plan-item__desc { font-size: 13.5px; color: var(--text-2); }
 .scheme { font-stretch: 68%; font-weight: 750; font-size: 26px; line-height: 1.1; font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: 10px; margin-top: 4px; }
+.plan-item__rest { font-stretch: 100%; font-size: 13.5px; font-weight: 500; color: var(--text-2); }
 .plan-item__edit { font-stretch: 100%; font-size: 13.5px; font-weight: 650; color: var(--red-ink); }
 .plan-item__editor { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 0 14px 32px; }
 .control { display: flex; flex-direction: column; gap: 6px; }

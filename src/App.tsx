@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Icon } from './components/Icon'
 import { Toast } from './components/ui'
-import { GOALS, generatePlan, type Workout } from './lib/planner'
+import { DEFAULT_REST, generatePlan, type Workout } from './lib/planner'
 import { store, type ActiveSession, type HistoryEntry, type Prefs } from './lib/storage'
 import { Library } from './screens/Library'
 import { Plan } from './screens/Plan'
@@ -16,7 +16,8 @@ const DEFAULT_PREFS: Prefs = {
   minutes: 45,
   equipment: 'gym',
   goal: 'muscle',
-  restSec: GOALS[1].rest,
+  restCompound: DEFAULT_REST.compound,
+  restIsolation: DEFAULT_REST.isolation,
   warmup: true,
   sound: true,
 }
@@ -144,5 +145,13 @@ export default function App() {
 }
 
 function pickPlanInputs(w: Workout) {
-  return { muscles: w.muscles, minutes: w.targetMin, equipment: w.equipment, goal: w.goal, restSec: w.restSec, warmup: w.warmup }
+  return {
+    muscles: w.muscles,
+    minutes: w.targetMin,
+    equipment: w.equipment,
+    goal: w.goal,
+    warmup: w.warmup,
+    ...(w.restCompound !== undefined ? { restCompound: w.restCompound } : {}),
+    ...(w.restIsolation !== undefined ? { restIsolation: w.restIsolation } : {}),
+  }
 }

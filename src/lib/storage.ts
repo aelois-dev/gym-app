@@ -33,7 +33,9 @@ export interface Prefs {
   minutes: number
   equipment: Workout['equipment']
   goal: Workout['goal']
-  restSec: number
+  /** Default rest after sets of compound lifts / other exercises, in seconds. */
+  restCompound: number
+  restIsolation: number
   warmup: boolean
   sound: boolean
 }

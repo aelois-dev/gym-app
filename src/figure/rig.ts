@@ -198,6 +198,8 @@ export function pointOf(sk: Skeleton, ref: AttachRef, t: number): Pt {
       return sk.arm2.end
     case 'ankle':
       return sk.leg.end
+    case 'knee':
+      return add(sk.leg.mid, ref.offset ?? [0, 0])
     case 'shoulder':
       return add(sk.shoulder, rot(ref.offset ?? [0, 0], t))
     case 'hip':
@@ -206,6 +208,6 @@ export function pointOf(sk: Skeleton, ref: AttachRef, t: number): Pt {
 }
 
 export interface AttachRef {
-  on: 'hand' | 'hand2' | 'ankle' | 'shoulder' | 'hip'
+  on: 'hand' | 'hand2' | 'ankle' | 'knee' | 'shoulder' | 'hip'
   offset?: Pt
 }

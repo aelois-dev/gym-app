@@ -28,7 +28,6 @@ export function Setup({
   const toggle = (m: Muscle) =>
     onChange({ ...prefs, muscles: prefs.muscles.includes(m) ? prefs.muscles.filter((x) => x !== m) : [...prefs.muscles, m] })
 
-  const goal = GOALS.find((g) => g.id === prefs.goal)!
   const ready = prefs.muscles.length > 0
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
 
@@ -126,7 +125,7 @@ export function Setup({
         <Segmented
           label="Goal"
           value={prefs.goal}
-          onChange={(g) => onChange({ ...prefs, goal: g, restSec: GOALS.find((x) => x.id === g)!.rest })}
+          onChange={(goal) => onChange({ ...prefs, goal })}
           options={GOALS.map((g) => ({ id: g.id, label: g.label, sub: g.scheme }))}
         />
       </section>
@@ -134,10 +133,17 @@ export function Setup({
       <div className="rows">
         <div className="row">
           <div className="row__text">
-            <h2>Rest between sets</h2>
-            <p>{formatClock(goal.rest)} suits {goal.label.toLowerCase()} work</p>
+            <h2>Rest after compound lifts</h2>
+            <p>Squats, presses, rows and other multi-joint moves</p>
           </div>
-          <Stepper label="Rest time" value={prefs.restSec} min={15} max={300} step={15} onChange={(restSec) => onChange({ ...prefs, restSec })} format={formatClock} />
+          <Stepper label="Rest after compound lifts" value={prefs.restCompound} min={30} max={300} step={15} onChange={(restCompound) => onChange({ ...prefs, restCompound })} format={formatClock} />
+        </div>
+        <div className="row">
+          <div className="row__text">
+            <h2>Rest after other exercises</h2>
+            <p>Curls, raises, core work and other single-joint moves</p>
+          </div>
+          <Stepper label="Rest after other exercises" value={prefs.restIsolation} min={30} max={300} step={15} onChange={(restIsolation) => onChange({ ...prefs, restIsolation })} format={formatClock} />
         </div>
         <label className="row">
           <div className="row__text">

@@ -96,7 +96,7 @@ const MUSCLE_HIGHLIGHT: Record<Muscle, Highlight> = {
   glutes: 'glutes',
   core: 'core',
 }
-const CALF_EXERCISES = new Set(['calf-raise', 'single-leg-calf'])
+const CALF_EXERCISES = new Set(['calf-raise', 'single-leg-calf', 'seated-calf-raise'])
 
 export function highlightFor(exerciseId: string): Highlight {
   if (CALF_EXERCISES.has(exerciseId)) return 'calves'
@@ -212,7 +212,7 @@ function Load({ kind, sk, pattern, t, far }: { kind: LoadKind; sk: Skeleton; pat
       if (pattern.loadAt) return null
       const end = sk.arm2.end
       if (kind === 'dumbbell') return hexagon(end, 5.6 * depthScale(sk.arm2.zEnd))
-      if ((kind === 'cable' || kind === 'machine') && pattern.anchor) {
+      if ((kind === 'cable' || kind === 'machine') && pattern.anchor && !pattern.singleCable) {
         const a2: Pt = [2 * sk.hip[0] - pattern.anchor[0], pattern.anchor[1]]
         return (
           <g>
@@ -276,6 +276,11 @@ export function fitBox(pattern: Pattern): Box {
     }
   }
   if (pattern.anchor) pt(pattern.anchor, 6)
+  // Front views draw a second cable to the mirrored pulley.
+  if (pattern.anchor && pattern.view === 'front' && !pattern.singleCable) {
+    const hipX = pattern.a.hip[0]
+    pt([2 * hipX - pattern.anchor[0], pattern.anchor[1]], 6)
+  }
   for (const p of pattern.props ?? []) {
     if (p.kind === 'bench' || p.kind === 'box') pt([p.x, p.y]), pt([p.x + p.w, p.y])
     else if (p.kind === 'bar' || p.kind === 'dipBars') pt([p.x1 - 4, p.y - 3]), pt([p.x2 + 4, p.y])

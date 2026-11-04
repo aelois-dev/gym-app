@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { EXERCISES } from '../data/exercises'
 import { fitBox, phase } from './ExerciseAnimation'
 import { FLOOR, PATTERNS, animationFor, type Pattern } from './patterns'
-import { LEN, lerpPose, solve } from './rig'
+import { LEN, lerpPose, solve, type LimbSpec } from './rig'
 
 const frames = [0, 0.25, 0.5, 0.75, 1]
 const dist = (a: number[], b: number[]) => Math.hypot(a[0] - b[0], a[1] - b[1])
@@ -20,7 +20,19 @@ describe('exercise animations', () => {
     }
   })
 
-  it('every exercise has an animation', () => {
+  it('start and end poses describe each limb the same way, so the pose blends', () => {
+    const kind = (l?: LimbSpec) => (l ? (l.v3 ? 'v3' : l.a ? 'fk' : l.at ? `ik:${l.from ?? 'world'}` : 'none') : 'default')
+    const bad: string[] = []
+    for (const [id, raw] of Object.entries(PATTERNS)) {
+      const p = raw as Pattern
+      for (const limb of ['arm', 'arm2', 'leg', 'leg2'] as const) {
+        if (kind(p.a[limb]) !== kind(p.b[limb])) bad.push(`${id}.${limb}: ${kind(p.a[limb])} vs ${kind(p.b[limb])}`)
+      }
+    }
+    expect(bad).toEqual([])
+  })
+
+    it('every exercise has an animation', () => {
     const missing = EXERCISES.filter((e) => !animationFor(e.id, e.kit)).map((e) => e.id)
     expect(missing).toEqual([])
   })

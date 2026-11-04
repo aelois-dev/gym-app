@@ -9,11 +9,14 @@ import {
 
 export type Goal = 'strength' | 'muscle' | 'endurance'
 
-export const GOALS: { id: Goal; label: string; scheme: string; rest: number }[] = [
-  { id: 'strength', label: 'Strength', scheme: '4 × 5', rest: 120 },
-  { id: 'muscle', label: 'Muscle', scheme: '3 × 10', rest: 75 },
-  { id: 'endurance', label: 'Endurance', scheme: '3 × 15', rest: 45 },
+export const GOALS: { id: Goal; label: string; scheme: string }[] = [
+  { id: 'strength', label: 'Strength', scheme: '4 × 5' },
+  { id: 'muscle', label: 'Muscle', scheme: '3 × 10' },
+  { id: 'endurance', label: 'Endurance', scheme: '3 × 15' },
 ]
+
+/** Default rest between sets: longer for heavy multi-joint lifts. */
+export const DEFAULT_REST = { compound: 180, isolation: 120 }
 
 const BASE: Record<Goal, { sets: number; reps: number; holdSec: number }> = {
   strength: { sets: 4, reps: 5, holdSec: 20 },
@@ -36,6 +39,13 @@ export interface PlanItem {
   sets: number
   /** Reps, or seconds when the exercise is timed. */
   reps: number
+  /** Rest after each set of this exercise (also used before the next exercise). */
+  restSec?: number
+}
+
+export interface RestDefaults {
+  restCompound: number
+  restIsolation: number
 }
 
 export interface Workout {
@@ -44,18 +54,21 @@ export interface Workout {
   muscles: Muscle[]
   equipment: EquipmentMode
   goal: Goal
-  restSec: number
+  /** Defaults applied to exercises added to this workout. */
+  restCompound?: number
+  restIsolation?: number
+  /** Legacy: one rest time for the whole workout (saved before per-exercise rest). */
+  restSec?: number
   warmup: boolean
   targetMin: number
   items: PlanItem[]
 }
 
-export interface PlanInput {
+export interface PlanInput extends RestDefaults {
   muscles: Muscle[]
   minutes: number
   equipment: EquipmentMode
   goal: Goal
-  restSec: number
   warmup: boolean
 }
 
@@ -73,19 +86,32 @@ export function workSeconds(ex: Exercise, reps: number): number {
   return (ex.timed ? reps : reps * SEC_PER_REP) + SET_SETUP_SEC
 }
 
-type Timing = Pick<Workout, 'items' | 'restSec' | 'warmup'>
+/** The default rest for an exercise under a workout's (or the user's) settings. */
+export function defaultRest(ex: Exercise, d: Partial<RestDefaults> = {}): number {
+  return ex.compound ? (d.restCompound ?? DEFAULT_REST.compound) : (d.restIsolation ?? DEFAULT_REST.isolation)
+}
 
-/** Estimated session length in seconds. Rest follows every set except the last one. */
-export function estimateSeconds({ items, restSec, warmup }: Timing): number {
+/** Rest after a set of this item, falling back for workouts saved before per-exercise rest. */
+export function restFor(item: PlanItem, w: Pick<Workout, 'restSec' | 'restCompound' | 'restIsolation'>): number {
+  return item.restSec ?? w.restSec ?? defaultRest(getExercise(item.exerciseId), w)
+}
+
+type Timing = Pick<Workout, 'items' | 'warmup' | 'restSec' | 'restCompound' | 'restIsolation'>
+
+/**
+ * Estimated session length in seconds. Each set is followed by that exercise's rest,
+ * except the very last set of the workout.
+ */
+export function estimateSeconds(w: Timing): number {
+  const { items, warmup } = w
   if (items.length === 0) return warmup ? WARMUP_SEC : 0
   let total = warmup ? WARMUP_SEC : 0
-  let sets = 0
-  for (const it of items) {
+  items.forEach((it, i) => {
+    const rest = restFor(it, w)
     total += it.sets * workSeconds(getExercise(it.exerciseId), it.reps)
-    sets += it.sets
-  }
-  total += Math.max(0, sets - 1) * restSec
-  total += (items.length - 1) * TRANSITION_SEC
+    total += (it.sets - 1) * rest
+    if (i < items.length - 1) total += rest + TRANSITION_SEC
+  })
   return total
 }
 
@@ -123,7 +149,8 @@ export function generatePlan(input: PlanInput, rand: () => number = Math.random)
     muscles,
     equipment: input.equipment,
     goal: input.goal,
-    restSec: input.restSec,
+    restCompound: input.restCompound,
+    restIsolation: input.restIsolation,
     warmup: input.warmup,
     targetMin: input.minutes,
     items: [],
@@ -150,6 +177,7 @@ export function generatePlan(input: PlanInput, rand: () => number = Math.random)
   const fits = (items: PlanItem[]) => estimateSeconds({ ...workout, items }) <= budget
 
   // Round-robin across muscles so every muscle gets work before any gets seconds.
+  const covered = new Set<Muscle>()
   let added = true
   while (added && workout.items.length < MAX_EXERCISES) {
     added = false
@@ -158,11 +186,17 @@ export function generatePlan(input: PlanInput, rand: () => number = Math.random)
       const q = queues.get(m)!
       const ex = q[0]
       if (!ex) continue
-      const item: PlanItem = { uid: uid(), exerciseId: ex.id, ...defaultPrescription(ex, input.goal) }
-      const next = [...workout.items, item]
+      const item: PlanItem = { uid: uid(), exerciseId: ex.id, ...defaultPrescription(ex, input.goal), restSec: defaultRest(ex, input) }
+      let next = [...workout.items, item]
+      // A muscle with no work yet gets its first exercise even if that means fewer sets (down to 2).
+      const uncovered = !covered.has(m)
+      while (uncovered && !fits(next) && workout.items.length > 0 && next.at(-1)!.sets > 2) {
+        next = [...workout.items, { ...next.at(-1)!, sets: next.at(-1)!.sets - 1 }]
+      }
       if (fits(next) || workout.items.length === 0) {
         q.shift()
         workout.items = next
+        covered.add(m)
         added = true
       }
     }
@@ -185,6 +219,13 @@ export function generatePlan(input: PlanInput, rand: () => number = Math.random)
     .map((it, i) => ({ it, i }))
     .sort((a, b) => rank(a.it) - rank(b.it) || a.i - b.i)
     .map(({ it }) => it)
+
+  // Reordering changes which rest precedes each exercise, so trim sets if that pushed us over.
+  while (workout.items.length > 1 && !fits(workout.items)) {
+    const idx = workout.items.reduce((best, it, i) => (it.sets >= workout.items[best].sets ? i : best), 0)
+    const it = workout.items[idx]
+    workout.items = it.sets > 2 ? workout.items.map((x, i) => (i === idx ? { ...x, sets: x.sets - 1 } : x)) : workout.items.slice(0, -1)
+  }
 
   return workout
 }

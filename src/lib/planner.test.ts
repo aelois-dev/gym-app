@@ -4,8 +4,10 @@ import {
   addCandidates,
   estimateSeconds,
   formatClock,
+  DEFAULT_REST,
   generatePlan,
   poolFor,
+  restFor,
   swapCandidates,
   type PlanInput,
 } from './planner'
@@ -22,7 +24,8 @@ const base: PlanInput = {
   minutes: 45,
   equipment: 'gym',
   goal: 'muscle',
-  restSec: 75,
+  restCompound: 180,
+  restIsolation: 120,
   warmup: true,
 }
 
@@ -48,7 +51,8 @@ describe('generatePlan', () => {
         ...base,
         minutes,
         muscles: MUSCLES.filter(() => rand() > 0.5).map((m) => m.id),
-        restSec: 30 + Math.floor(rand() * 150),
+        restCompound: 60 + Math.floor(rand() * 180),
+        restIsolation: 30 + Math.floor(rand() * 150),
         goal: (['strength', 'muscle', 'endurance'] as const)[s % 3],
         equipment: (['gym', 'dumbbell', 'bodyweight'] as const)[s % 3],
       }
@@ -122,8 +126,33 @@ describe('estimateSeconds', () => {
     const moreReps = { ...w, items: w.items.map((i, k) => (k === 0 ? { ...i, reps: i.reps + 5 } : i)) }
     expect(estimateSeconds(moreSets)).toBeGreaterThan(t0)
     expect(estimateSeconds(moreReps)).toBeGreaterThan(t0)
-    expect(estimateSeconds({ ...w, restSec: w.restSec + 30 })).toBeGreaterThan(t0)
+    const moreRest = { ...w, items: w.items.map((i, k) => (k === 0 ? { ...i, restSec: (i.restSec ?? 0) + 30 } : i)) }
+    expect(estimateSeconds(moreRest)).toBeGreaterThan(t0)
     expect(estimateSeconds({ ...w, warmup: false })).toBe(t0 - 300)
+  })
+})
+
+describe('rest defaults', () => {
+  it('gives compound lifts 3:00 and everything else 2:00 by default', () => {
+    expect(DEFAULT_REST).toEqual({ compound: 180, isolation: 120 })
+    const w = generatePlan({ ...base, muscles: ['chest', 'biceps', 'legs'], minutes: 90 }, seeded(6))
+    expect(w.items.some((i) => getExercise(i.exerciseId).compound)).toBe(true)
+    expect(w.items.some((i) => !getExercise(i.exerciseId).compound)).toBe(true)
+    for (const it of w.items) expect(it.restSec).toBe(getExercise(it.exerciseId).compound ? 180 : 120)
+  })
+
+  it('uses the rest defaults the user chose', () => {
+    const w = generatePlan({ ...base, restCompound: 150, restIsolation: 60, minutes: 90 }, seeded(6))
+    for (const it of w.items) expect(it.restSec).toBe(getExercise(it.exerciseId).compound ? 150 : 60)
+  })
+
+  it('falls back to the old workout-wide rest for plans saved before per-exercise rest', () => {
+    const w = generatePlan(base, seeded(3))
+    const legacy = { ...w, restSec: 75, restCompound: undefined, restIsolation: undefined, items: w.items.map(({ restSec: _r, ...i }) => i) }
+    expect(restFor(legacy.items[0], legacy)).toBe(75)
+    const noRestAtAll = { ...legacy, restSec: undefined }
+    const ex = getExercise(noRestAtAll.items[0].exerciseId)
+    expect(restFor(noRestAtAll.items[0], noRestAtAll)).toBe(ex.compound ? 180 : 120)
   })
 })
 
