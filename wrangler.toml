@@ -1,4 +1,9 @@
-# Cloudflare Pages config — https://developers.cloudflare.com/pages/functions/wrangler-configuration/
+# Cloudflare Workers (static assets) config.
+# Cloudflare runs `npm run build`, then `npx wrangler deploy`, which uploads ./dist.
+# `name` must match the Worker's name in the Cloudflare dashboard.
 name = "gym-app"
-pages_build_output_dir = "./dist"
 compatibility_date = "2026-10-01"
+
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
