@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { ExerciseSheet } from '../components/ExerciseSheet'
 import { ProgressRing, Sheet } from '../components/ui'
-import { ExerciseAnimation } from '../figure/ExerciseAnimation'
+import { ExerciseAnimation, animationCaption } from '../figure/ExerciseAnimation'
 import { getExercise } from '../data/exercises'
 import { alarm, keepAwake, tick, unlockAudio } from '../lib/feedback'
 import { WARMUP_SEC, formatClock, uid, type Workout } from '../lib/planner'
@@ -217,9 +217,12 @@ export function Session({
               <span className="ring__label">hold</span>
             </ProgressRing>
           ) : (
-            <button className="work-demo" onClick={() => setDemo(true)} aria-label={`Show ${ex.name} demo and form tip`}>
-              <ExerciseAnimation exerciseId={ex.id} />
-            </button>
+            <div>
+              <button className="work-demo" onClick={() => setDemo(true)} aria-label={`Show ${ex.name} demo and form tip`}>
+                <ExerciseAnimation exerciseId={ex.id} />
+              </button>
+              {animationCaption(ex.id) && <p className="fig-caption">{animationCaption(ex.id)}</p>}
+            </div>
           )}
 
           <div className="work-target">

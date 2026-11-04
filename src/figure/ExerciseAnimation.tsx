@@ -135,21 +135,22 @@ function Torso({ sk, front, hi }: { sk: Skeleton; front: boolean; hi: Highlight 
   const up = unit(sub(sk.shoulder, sk.hip))
   // Perpendicular to the spine, pointing out of the chest (the figure faces +x in side view).
   const chestSide: Pt = [-up[1], up[0]]
-  const ribC = add(add(sk.shoulder, mul(up, -11)), mul(chestSide, front ? 0 : 1.5))
+  const sc = Math.max(0.45, sk.torsoScale)
+  const ribC = add(add(sk.shoulder, mul(up, -11 * sc)), mul(chestSide, front ? 0 : 1.5))
   const pelC = add(add(sk.hip, mul(up, 2)), mul(chestSide, front ? 0 : -0.5))
   const ribW = front ? 15 : 10.5
   const pelW = front ? 11.5 : 9.5
   const waist = front ? 9 : 8
   return (
     <>
-      {ellipse(ribC, up, 14, ribW, 'rib')}
+      {ellipse(ribC, up, 14 * sc, ribW, 'rib')}
       <path d={capsule(ribC, pelC, waist, waist)} />
       {ellipse(pelC, up, 9, pelW, 'pel')}
       <path d={capsule(add(sk.shoulder, mul(up, -1)), sk.head, 3.4, 3.4)} />
       {ellipse(sk.head, up, 8.6, 7.4, 'head')}
       {!front && <circle cx={f(sk.head[0] + chestSide[0] * 7 - up[0] * 1.2)} cy={f(sk.head[1] + chestSide[1] * 7 - up[1] * 1.2)} r={2.4} />}
-      {hi === 'chest' && ellipse(add(add(sk.shoulder, mul(up, -9)), mul(chestSide, front ? 0 : 4.5)), up, front ? 6.5 : 8.5, front ? 11 : 5.2, 'hi-chest', 'fig-muscle')}
-      {hi === 'back' && ellipse(add(add(sk.shoulder, mul(up, -13)), mul(chestSide, front ? 0 : -3)), up, 11, front ? 12.5 : 5.2, 'hi-back', 'fig-muscle')}
+      {hi === 'chest' && ellipse(add(add(sk.shoulder, mul(up, -9 * sc)), mul(chestSide, front ? 0 : 4.5)), up, (front ? 6.5 : 8.5) * sc, front ? 11 : 5.2, 'hi-chest', 'fig-muscle')}
+      {hi === 'back' && ellipse(add(add(sk.shoulder, mul(up, -13 * sc)), mul(chestSide, front ? 0 : -3)), up, 11 * sc, front ? 12.5 : 5.2, 'hi-back', 'fig-muscle')}
       {hi === 'core' && ellipse(add(add(ribC, mul(sub(pelC, ribC), 0.55)), mul(chestSide, front ? 0 : 3.4)), up, 9, front ? 6 : 4.2, 'hi-core', 'fig-muscle')}
       {hi === 'glutes' && ellipse(add(pelC, mul(chestSide, front ? 0 : -3.4)), up, 7, front ? 10 : 5.8, 'hi-glutes', 'fig-muscle')}
     </>
@@ -186,6 +187,8 @@ function PropShape({ prop }: { prop: Prop }) {
       return <rect className="fig-block" x={prop.x - 9} y={-40} width={9} height={FLOOR + 40} />
     case 'pad':
       return <path className="fig-pad-line" d={seg(prop.from, prop.to)} strokeWidth={prop.w ?? 7} />
+    case 'rect':
+      return <rect className={prop.tone === 'pad' ? 'fig-pad' : prop.tone === 'steel' ? 'fig-steel-fill' : 'fig-block'} x={prop.x} y={prop.y} width={prop.w} height={prop.h} rx={4} />
   }
 }
 
@@ -197,10 +200,30 @@ function hexagon(c: Pt, r: number) {
   return <polygon className="fig-iron" points={pts.join(' ')} />
 }
 
+/** Things closer to the viewer draw slightly larger. */
+const depthScale = (z?: number) => 1 + Math.max(0, z ?? 0) / 90
+
 function Load({ kind, sk, pattern, t, far }: { kind: LoadKind; sk: Skeleton; pattern: Pattern; t: number; far?: boolean }) {
   if (kind === 'none') return null
   if (far) {
     // Only dumbbells show in the far hand.
+    if (pattern.view === 'front') {
+      // Front view: the far hand is the figure's other side and carries its own weight or cable.
+      if (pattern.loadAt) return null
+      const end = sk.arm2.end
+      if (kind === 'dumbbell') return hexagon(end, 5.6 * depthScale(sk.arm2.zEnd))
+      if ((kind === 'cable' || kind === 'machine') && pattern.anchor) {
+        const a2: Pt = [2 * sk.hip[0] - pattern.anchor[0], pattern.anchor[1]]
+        return (
+          <g>
+            <path className="fig-steel" d={seg(end, a2)} strokeWidth={kind === 'cable' ? 1.3 : 4.5} />
+            <circle className="fig-pulley" cx={f(a2[0])} cy={f(a2[1])} r={4.8} />
+            <rect className="fig-steel-fill" x={f(end[0] - 3.6)} y={f(end[1] - 3.6)} width={7.2} height={7.2} rx={2} />
+          </g>
+        )
+      }
+      return null
+    }
     if (kind !== 'dumbbell' || pattern.loadAt) return null
     return <g className="fig-far-load">{hexagon(sk.arm2.end, 5.6)}</g>
   }
@@ -214,7 +237,7 @@ function Load({ kind, sk, pattern, t, far }: { kind: LoadKind; sk: Skeleton; pat
       </g>
     )
   }
-  if (kind === 'dumbbell') return hexagon(at, 5.6)
+  if (kind === 'dumbbell') return hexagon(at, 5.6 * (pattern.loadAt ? 1 : depthScale(sk.arm.zEnd)))
   const anchor = pattern.anchor
   return (
     <g>
@@ -258,13 +281,14 @@ export function fitBox(pattern: Pattern): Box {
     else if (p.kind === 'bar' || p.kind === 'dipBars') pt([p.x1 - 4, p.y - 3]), pt([p.x2 + 4, p.y])
     else if (p.kind === 'pad') pt(p.from, 4), pt(p.to, 4)
     else if (p.kind === 'wall') xs.push(p.x - 9)
+    else if (p.kind === 'rect') pt([p.x, p.y]), pt([p.x + p.w, p.y + p.h])
   }
-  ys.push(FLOOR + 3)
+  if (!pattern.overhead) ys.push(FLOOR + 3)
   const pad = 10
   let x = Math.min(...xs) - pad
   let w = Math.max(...xs) + pad - x
   let y = Math.min(...ys) - pad
-  const bottom = Math.max(...ys) + 5
+  const bottom = Math.max(...ys) + (pattern.overhead ? pad : 5)
   let h = bottom - y
   const ratio = 1.25
   if (w / h < ratio) {
@@ -286,20 +310,41 @@ export function Figure({ pattern, load, k, box, hi }: { pattern: Pattern; load: 
   const backProps = (pattern.props ?? []).filter((p) => p.kind !== 'bar' && p.kind !== 'dipBars')
   const frontProps = (pattern.props ?? []).filter((p) => p.kind === 'bar' || p.kind === 'dipBars')
   const farCls = front ? 'fig-body' : 'fig-body fig-body--far'
+  const ground = !pattern.overhead
+  const armPads = pattern.armPads
+    ? [sk.arm, sk.arm2].map((l, i) => {
+        const dir = unit(sub(l.end, l.mid))
+        return <path key={i} className="fig-pad" d={capsule(add(l.mid, mul(dir, -2)), add(l.end, mul(dir, 6)), 5.5, 5.5)} />
+      })
+    : null
   return (
     <>
-      <rect className="fig-ground" x={f(box.x)} y={FLOOR + 1} width={f(box.w)} height={f(box.y + box.h - FLOOR)} />
-      <ellipse className="fig-shadow" cx={f((sk.leg.end[0] + sk.leg2.end[0] + sk.hip[0]) / 3)} cy={FLOOR + 1.5} rx={28} ry={2.6} />
+      {ground && <rect className="fig-ground" x={f(box.x)} y={FLOOR + 1} width={f(box.w)} height={f(box.y + box.h - FLOOR)} />}
+      {ground && <ellipse className="fig-shadow" cx={f((sk.leg.end[0] + sk.leg2.end[0] + sk.hip[0]) / 3)} cy={FLOOR + 1.5} rx={28} ry={2.6} />}
       {backProps.map((p, i) => (
         <PropShape key={i} prop={p} />
       ))}
+      {pattern.overhead && (
+        // Drop shadow of the body onto the bench, so the figure reads as lying on it.
+        <g className="fig-drop" transform="translate(3 4)">
+          <Leg sk={sk} far hi={null} />
+          <Leg sk={sk} hi={null} />
+          <Torso sk={sk} front={front} hi={null} />
+          <Arm sk={sk} far hi={null} />
+          <Arm sk={sk} hi={null} />
+        </g>
+      )}
       <Part cls={farCls}>
         <Leg sk={sk} far hi={hi} />
       </Part>
-      <Part cls={farCls}>
-        <Arm sk={sk} far hi={hi} />
-      </Part>
-      <Load kind={load} sk={sk} pattern={pattern} t={pose.t} far />
+      {!front && (
+        <>
+          <Part cls={farCls}>
+            <Arm sk={sk} far hi={hi} />
+          </Part>
+          <Load kind={load} sk={sk} pattern={pattern} t={pose.t} far />
+        </>
+      )}
       {front && (
         <Part cls="fig-body">
           <Leg sk={sk} hi={hi} />
@@ -320,6 +365,15 @@ export function Figure({ pattern, load, k, box, hi }: { pattern: Pattern; load: 
         const at = pointOf(sk, ref, pose.t)
         return <circle key={i} className="fig-roller" cx={f(at[0])} cy={f(at[1])} r={6.5} />
       })}
+      {armPads}
+      {front && (
+        <>
+          <Part cls={farCls}>
+            <Arm sk={sk} far hi={hi} />
+          </Part>
+          <Load kind={load} sk={sk} pattern={pattern} t={pose.t} far />
+        </>
+      )}
       {load === 'barbell' && <Load kind={load} sk={sk} pattern={pattern} t={pose.t} />}
       <Part cls="fig-body">
         <Arm sk={sk} hi={hi} />
@@ -327,6 +381,11 @@ export function Figure({ pattern, load, k, box, hi }: { pattern: Pattern; load: 
       {load !== 'barbell' && <Load kind={load} sk={sk} pattern={pattern} t={pose.t} />}
     </>
   )
+}
+
+/** A note about the camera angle for views that aren't a plain side or front view. */
+export function animationCaption(exerciseId: string): string | undefined {
+  return animationFor(exerciseId, getExercise(exerciseId).kit)?.pattern.caption
 }
 
 export function ExerciseAnimation({

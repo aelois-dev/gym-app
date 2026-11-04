@@ -407,6 +407,9 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .fig-pulley { fill: var(--fig-bg); stroke: var(--fig-steel); stroke-width: 2; }
 .fig-roller { fill: var(--fig-pad); }
 .fig-far-load { opacity: 0.55; }
+.fig-drop { opacity: 0.22; }
+.fig-drop > * { fill: #000; }
+.fig-caption { font-size: 13px; color: var(--text-2); text-align: center; margin-top: 6px; }
 
 @media (max-width: 359px) {
   .display { font-size: 36px; }

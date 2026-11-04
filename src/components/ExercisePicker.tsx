@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Icon } from './Icon'
 import { Sheet } from './ui'
 import { KIT_LABEL, getExercise, muscleLabel, type Exercise } from '../data/exercises'
-import { ExerciseAnimation } from '../figure/ExerciseAnimation'
+import { ExerciseAnimation, animationCaption } from '../figure/ExerciseAnimation'
 
 export function describe(ex: Exercise): string {
   return [muscleLabel(ex.muscle), KIT_LABEL[ex.kit].toLowerCase(), ex.compound ? 'compound' : null].filter(Boolean).join(', ')
@@ -44,8 +44,11 @@ export function ExercisePicker({
           <button className="link link--back" onClick={() => setPreviewId(null)}>
             <Icon name="back" size={16} /> All options
           </button>
-          <div className="demo">
-            <ExerciseAnimation exerciseId={preview.id} />
+          <div>
+            <div className="demo">
+              <ExerciseAnimation exerciseId={preview.id} />
+            </div>
+            {animationCaption(preview.id) && <p className="fig-caption">{animationCaption(preview.id)}</p>}
           </div>
           <div className="picker-preview__head">
             <h3 className="display display--sm">{preview.name}</h3>

@@ -8,6 +8,18 @@ const frames = [0, 0.25, 0.5, 0.75, 1]
 const dist = (a: number[], b: number[]) => Math.hypot(a[0] - b[0], a[1] - b[1])
 
 describe('exercise animations', () => {
+  it('fly exercises use a view that shows the arms opening sideways', () => {
+    for (const id of ['db-fly', 'cable-crossover', 'pec-deck', 'rear-delt-fly']) {
+      const ex = EXERCISES.find((e) => e.id === id)!
+      const { pattern } = animationFor(id, ex.kit)!
+      expect(pattern.view, id).toBe('front')
+      // The hands travel a long way sideways on screen during the rep.
+      const x0 = solve(pattern.a, 'front').arm.end[0]
+      const x1 = solve(pattern.b, 'front').arm.end[0]
+      expect(Math.abs(x1 - x0), id).toBeGreaterThan(18)
+    }
+  })
+
   it('every exercise has an animation', () => {
     const missing = EXERCISES.filter((e) => !animationFor(e.id, e.kit)).map((e) => e.id)
     expect(missing).toEqual([])
@@ -21,13 +33,18 @@ describe('exercise animations', () => {
         const pts = [sk.hip, sk.shoulder, sk.head, ...[sk.arm, sk.arm2, sk.leg, sk.leg2].flatMap((l) => [l.root, l.mid, l.end, ...(l.toe ? [l.toe] : [])])]
         for (const p of pts) {
           expect(Number.isFinite(p[0]) && Number.isFinite(p[1])).toBe(true)
-          expect(p[1]).toBeLessThanOrEqual(FLOOR + 3)
+          if (!pattern.overhead) expect(p[1]).toBeLessThanOrEqual(FLOOR + 3)
         }
-        // Bones keep their length (IK/FK never stretches a limb).
-        expect(dist(sk.arm.root, sk.arm.mid)).toBeCloseTo(LEN.upperArm, 1)
-        expect(dist(sk.arm.mid, sk.arm.end)).toBeCloseTo(LEN.foreArm, 1)
-        expect(dist(sk.leg.root, sk.leg.mid)).toBeCloseTo(LEN.thigh, 1)
-        expect(dist(sk.leg.mid, sk.leg.end)).toBeCloseTo(LEN.shin, 1)
+        // Bones keep their length (IK/FK never stretches a limb). 3D limbs may look shorter when
+        // they point toward or away from the viewer, but never longer.
+        const bone = (len: number, a: number[], b: number[], is3d: boolean) =>
+          is3d ? expect(dist(a, b)).toBeLessThanOrEqual(len + 0.01) : expect(dist(a, b)).toBeCloseTo(len, 1)
+        const arm3d = !!pattern.a.arm.v3
+        const leg3d = !!pattern.a.leg.v3
+        bone(LEN.upperArm, sk.arm.root, sk.arm.mid, arm3d)
+        bone(LEN.foreArm, sk.arm.mid, sk.arm.end, arm3d)
+        bone(LEN.thigh, sk.leg.root, sk.leg.mid, leg3d)
+        bone(LEN.shin, sk.leg.mid, sk.leg.end, leg3d)
       }
       const box = fitBox(pattern)
       expect(box.w / box.h).toBeCloseTo(1.25, 2)

@@ -1,5 +1,5 @@
 import type { Kit } from '../data/exercises'
-import type { AttachRef, LimbSpec, Pose, Pt, View } from './rig'
+import type { AttachRef, LimbSpec, Pose, Pt, Vec3, View } from './rig'
 
 export type LoadKind = 'barbell' | 'dumbbell' | 'cable' | 'machine' | 'none'
 
@@ -10,6 +10,7 @@ export type Prop =
   | { kind: 'dipBars'; x1: number; x2: number; y: number }
   | { kind: 'wall'; x: number }
   | { kind: 'pad'; from: Pt; to: Pt; w?: number }
+  | { kind: 'rect'; x: number; y: number; w: number; h: number; tone: 'pad' | 'block' | 'steel' }
 
 export interface Pattern {
   view?: View
@@ -26,6 +27,12 @@ export interface Pattern {
   dur?: number
   /** Isometric hold: subtle motion only. */
   hold?: boolean
+  /** Bird's-eye view: no floor line or shadow. */
+  overhead?: boolean
+  /** Short note shown under the figure when the camera angle isn't obvious. */
+  caption?: string
+  /** Machine pads along the forearms (pec deck). */
+  armPads?: boolean
 }
 
 export const FLOOR = 149
@@ -37,6 +44,7 @@ const fk = (a1: number, a2: number): LimbSpec => ({ a: [a1, a2] })
 const w = (x: number, y: number, bend?: number): LimbSpec => ({ at: [x, y], bend })
 const sh = (dx: number, dy: number, bend?: number): LimbSpec => ({ at: [dx, dy], from: 'shoulder', bend })
 const feet = (x = 100): LimbSpec => w(x, ANKLE)
+const v3 = (upper: Vec3, lower: Vec3): LimbSpec => ({ v3: [upper, lower] })
 
 const stand = (arm: LimbSpec, extra: Partial<Pose> = {}): Pose => ({ hip: STAND_HIP, t: 0, arm, leg: feet(), ...extra })
 
@@ -152,7 +160,6 @@ export const PATTERNS = {
     b: { hip: [112, 104], t: -58, arm: w(84, 37), leg: w(140, ANKLE) },
     props: [{ kind: 'pad', from: [116, 111], to: [62, 77], w: 8 }, { kind: 'bench', x: 100, y: 111, w: 30 }],
   },
-  benchFly: { a: lying(w(66, 124, -1)), b: lying(w(72, 60)), props: [BENCH] },
   pushUp: {
     a: { hip: [104, 128], t: 82, arm: w(138, ANKLE), leg: w(44, 142), foot: 15 },
     b: { hip: [98, 117], t: 66, arm: w(138, ANKLE), leg: w(44, 142), foot: 15 },
@@ -168,10 +175,41 @@ export const PATTERNS = {
     props: [{ kind: 'bench', x: 60, y: 112, w: 40 }, { kind: 'pad', from: [70, 112], to: [66, 58] }],
     anchor: [60, 20],
   },
-  standingFly: {
-    a: { hip: [94, 86], t: 20, arm: w(96, 56, -1), leg: feet(), leg2: w(84, ANKLE) },
-    b: { hip: [94, 86], t: 20, arm: w(132, 92), leg: feet(), leg2: w(84, ANKLE) },
-    anchor: [46, -12],
+
+  // Flies move the arms toward and away from the camera, so they use front or bird's-eye views
+  // with 3D arm directions (x = outward, y = up, z = toward the viewer).
+  flyOverhead: {
+    view: 'front',
+    overhead: true,
+    caption: 'Seen from above, lying on a flat bench',
+    a: { hip: [100, 112], t: 0, arm: v3([1, 0.08, -0.3], [1, 0.12, -0.2]), leg: v3([0.42, -1, 0], [0.3, -0.25, -1]), foot: 15 },
+    b: { hip: [100, 112], t: 0, arm: v3([0.18, 0, 1], [0.02, 0, 1]), leg: v3([0.42, -1, 0], [0.3, -0.25, -1]), foot: 15 },
+    props: [
+      { kind: 'rect', x: 80, y: 34, w: 40, h: 104, tone: 'steel' },
+      { kind: 'rect', x: 83, y: 37, w: 34, h: 98, tone: 'block' },
+    ],
+  },
+  crossover: {
+    view: 'front',
+    a: { hip: [100, 84], t: 0, arm: v3([0.95, 0.4, -0.15], [0.9, 0.35, 0.05]), leg: fk(5, 3) },
+    b: { hip: [100, 84], t: 0, arm: v3([0.2, -0.45, 0.87], [-0.45, -0.35, 0.82]), leg: fk(5, 3) },
+    anchor: [176, -8],
+  },
+  pecDeck: {
+    view: 'front',
+    a: { hip: [100, 112], t: 0, arm: v3([1, 0, -0.2], [0, 1, 0]), leg: v3([0.3, -0.15, 1], [0.05, -1, 0.05]), foot: 20 },
+    b: { hip: [100, 112], t: 0, arm: v3([0.1, 0, 1], [0, 1, 0.1]), leg: v3([0.3, -0.15, 1], [0.05, -1, 0.05]), foot: 20 },
+    props: [
+      { kind: 'rect', x: 84, y: 30, w: 32, h: 86, tone: 'block' },
+      { kind: 'rect', x: 97, y: 118, w: 6, h: 31, tone: 'steel' },
+      { kind: 'rect', x: 80, y: 110, w: 40, h: 8, tone: 'pad' },
+    ],
+    armPads: true,
+  },
+  rearDeltFront: {
+    view: 'front',
+    a: { hip: [100, 86], t: 0, pitch: 62, arm: v3([0.12, -1, 0.25], [0.1, -1, 0.3]), leg: fk(5, 3) },
+    b: { hip: [100, 86], t: 0, pitch: 62, arm: v3([1, -0.1, 0.1], [1, -0.2, 0.1]), leg: fk(5, 3) },
   },
 
   // ---------- back ----------
@@ -226,10 +264,6 @@ export const PATTERNS = {
     a: { hip: [100, 84], t: 0, arm: fk(8, 10), leg: fk(4, 2) },
     b: { hip: [100, 84], t: 0, arm: fk(86, 90), leg: fk(4, 2) },
     anchor: [56, ANKLE],
-  },
-  rearDelt: {
-    a: { hip: [88, 88], t: 70, arm: fk(4, 6), leg: feet(102) },
-    b: { hip: [88, 88], t: 70, arm: fk(-62, -70), leg: feet(102) },
   },
   facePull: {
     a: { hip: [94, 84], t: -6, arm: w(138, 48), leg: feet(98), leg2: w(84, ANKLE) },
@@ -343,9 +377,9 @@ export const EXERCISE_ANIMATION: Record<string, [PatternId, LoadKind?]> = {
   'machine-chest-press': ['seatedPress'],
   'db-bench': ['benchPress'],
   'incline-db-press': ['inclinePress'],
-  'db-fly': ['benchFly'],
-  'cable-crossover': ['standingFly'],
-  'pec-deck': ['seatedPress'],
+  'db-fly': ['flyOverhead'],
+  'cable-crossover': ['crossover'],
+  'pec-deck': ['pecDeck', 'none'],
   'push-up': ['pushUp'],
   'decline-push-up': ['declinePushUp'],
   'wide-push-up': ['pushUp'],
@@ -365,7 +399,7 @@ export const EXERCISE_ANIMATION: Record<string, [PatternId, LoadKind?]> = {
   'db-shoulder-press': ['seatedOhp'],
   'arnold-press': ['seatedOhp'],
   'lateral-raise': ['lateralRaise'],
-  'rear-delt-fly': ['rearDelt'],
+  'rear-delt-fly': ['rearDeltFront'],
   'front-raise': ['frontRaise'],
   'cable-lateral-raise': ['lateralRaise'],
   'face-pull': ['facePull'],

@@ -2,7 +2,7 @@ import { Icon } from './Icon'
 import { describe } from './ExercisePicker'
 import { Sheet } from './ui'
 import { getExercise } from '../data/exercises'
-import { ExerciseAnimation } from '../figure/ExerciseAnimation'
+import { ExerciseAnimation, animationCaption } from '../figure/ExerciseAnimation'
 
 export function ExerciseSheet({
   exerciseId,
@@ -22,8 +22,11 @@ export function ExerciseSheet({
     <Sheet open={!!ex} title={ex?.name ?? ''} onClose={onClose}>
       {ex && (
         <div className="picker-preview">
-          <div className="demo">
-            <ExerciseAnimation exerciseId={ex.id} />
+          <div>
+            <div className="demo">
+              <ExerciseAnimation exerciseId={ex.id} />
+            </div>
+            {animationCaption(ex.id) && <p className="fig-caption">{animationCaption(ex.id)}</p>}
           </div>
           <div className="picker-preview__head">
             <p className="muted">{describe(ex)}</p>
