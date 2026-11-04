@@ -1,6 +1,7 @@
 import { Icon } from './Icon'
+import { describe } from './ExercisePicker'
 import { Sheet } from './ui'
-import { KIT_LABEL, getExercise, muscleLabel } from '../data/exercises'
+import { getExercise } from '../data/exercises'
 import { ExerciseAnimation } from '../figure/ExerciseAnimation'
 
 export function ExerciseSheet({
@@ -20,27 +21,25 @@ export function ExerciseSheet({
   return (
     <Sheet open={!!ex} title={ex?.name ?? ''} onClose={onClose}>
       {ex && (
-        <div className="ex-detail">
+        <div className="picker-preview">
           <div className="demo">
             <ExerciseAnimation exerciseId={ex.id} />
           </div>
-          <div className="tags">
-            <span className="tag">{muscleLabel(ex.muscle)}</span>
-            <span className="tag tag--muted">{KIT_LABEL[ex.kit]}</span>
-            {ex.compound && <span className="tag tag--accent">Compound</span>}
+          <div className="picker-preview__head">
+            <p className="muted">{describe(ex)}</p>
             {sets !== undefined && reps !== undefined && (
-              <span className="tag tag--muted">
+              <p className="scheme">
                 {sets} × {reps}
-                {ex.timed ? 's' : ''}
-              </span>
+                {ex.timed ? ' s' : ''}
+              </p>
             )}
           </div>
-          <div className="ex-detail__tip">
-            <h3>Form tip</h3>
-            <p>{ex.cue}</p>
-          </div>
+          <p className="cue">{ex.cue}</p>
+          <p className="legend">
+            <span className="legend__swatch" aria-hidden="true" /> Highlighted: the muscle this exercise works
+          </p>
           {onSwap && (
-            <button className="btn btn--ghost btn--block" onClick={onSwap}>
+            <button className="btn btn--quiet btn--block" onClick={onSwap}>
               <Icon name="swap" size={18} /> Swap for another exercise
             </button>
           )}

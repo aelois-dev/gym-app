@@ -117,8 +117,8 @@ export function solve(pose: Pose, view: View = 'side'): Skeleton {
   const front = view === 'front'
   const sNear = front ? add(shoulder, scale(perp, 10)) : shoulder
   const sFar = front ? add(shoulder, scale(perp, -10)) : add(shoulder, DEPTH)
-  const hNear = front ? add(hip, scale(perp, 6)) : hip
-  const hFar = front ? add(hip, scale(perp, -6)) : add(hip, DEPTH)
+  const hNear = front ? add(hip, scale(perp, 7.5)) : hip
+  const hFar = front ? add(hip, scale(perp, -7.5)) : add(hip, DEPTH)
 
   const mirror = (s: LimbSpec): LimbSpec => {
     if (!front) {

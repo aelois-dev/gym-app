@@ -134,7 +134,7 @@ export default function App() {
           </button>
           <button className={tab === 'library' ? 'is-on' : ''} onClick={() => setScreen('library')} aria-current={tab === 'library' ? 'page' : undefined}>
             <Icon name="history" size={22} />
-            <span>Library</span>
+            <span>Log</span>
           </button>
         </nav>
       )}

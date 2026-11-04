@@ -5,48 +5,45 @@ import { store, type HistoryEntry } from '../lib/storage'
 
 export function Summary({ entry, workout, onDone, notify }: { entry: HistoryEntry; workout: Workout | null; onDone: () => void; notify: (m: string) => void }) {
   const [saved, setSaved] = useState(() => (workout ? store.isSaved(workout.id) : true))
-  const pct = Math.round((entry.setsDone / entry.totalSets) * 100)
+  const complete = entry.setsDone >= entry.totalSets
 
   return (
     <main className="screen summary">
-      <div className="summary__hero">
-        <div className="summary__badge">
-          <Icon name="check" size={40} />
-        </div>
-        <p className="eyebrow">Workout complete</p>
-        <h1>{entry.name}</h1>
-      </div>
+      <header className="page-head">
+        <h1 className="display">{complete ? 'Workout done' : 'Workout saved'}</h1>
+        <p className="page-head__sub">{entry.name}</p>
+      </header>
 
-      <section className="summary-card">
-        <div className="stats">
-          <div className="stat">
-            <span className="stat__value">{formatClock(entry.durationSec)}</span>
-            <span className="stat__label">duration</span>
-          </div>
-          <div className="stat">
-            <span className="stat__value">
-              {entry.setsDone}
-              <small>/{entry.totalSets}</small>
-            </span>
-            <span className="stat__label">sets</span>
-          </div>
-          <div className="stat">
-            <span className="stat__value">{pct}%</span>
-            <span className="stat__label">completed</span>
-          </div>
+      <dl className="tally">
+        <div>
+          <dt>Time</dt>
+          <dd className="num">{formatClock(entry.durationSec)}</dd>
         </div>
-      </section>
+        <div>
+          <dt>Sets</dt>
+          <dd className="num">
+            {entry.setsDone}
+            <small>/{entry.totalSets}</small>
+          </dd>
+        </div>
+        <div>
+          <dt>Target</dt>
+          <dd className="num">
+            {entry.targetMin}
+            <small> min</small>
+          </dd>
+        </div>
+      </dl>
 
-      <ul className="result-list">
+      <ul className="log">
         {entry.exercises.map((e, i) => (
-          <li key={i} className={e.setsDone === 0 ? 'is-skipped' : ''}>
-            <span className={`result-list__mark ${e.setsDone >= e.sets ? 'is-full' : ''}`}>
+          <li key={i} className={`log__row ${e.setsDone === 0 ? 'is-skipped' : ''}`}>
+            <span className={`result-mark ${e.setsDone >= e.sets ? 'is-full' : ''}`}>
               <Icon name={e.setsDone === 0 ? 'minus' : 'check'} size={14} />
             </span>
-            <span className="result-list__name">{e.name}</span>
-            <span className="muted">
-              {e.setsDone}/{e.sets} × {e.reps}
-              {e.timed ? 's' : ''}
+            <span className="log__text">
+              <strong>{e.name}</strong>
+              <span className="muted">{e.setsDone === 0 ? 'Skipped' : `${e.setsDone} of ${e.sets} sets of ${e.reps}${e.timed ? ' s' : ''}`}</span>
             </span>
           </li>
         ))}
@@ -55,11 +52,11 @@ export function Summary({ entry, workout, onDone, notify }: { entry: HistoryEntr
       <div className="cta-bar">
         {workout && !saved && (
           <button
-            className="btn btn--ghost btn--block"
+            className="btn btn--quiet btn--block"
             onClick={() => {
               store.saveWorkout(workout)
               setSaved(true)
-              notify('Saved to Library')
+              notify('Saved to your library')
             }}
           >
             <Icon name="bookmark" size={18} /> Save this workout

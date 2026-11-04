@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Icon } from '../components/Icon'
 import { Segmented } from '../components/ui'
 import { muscleLabel } from '../data/exercises'
+import { ExerciseAnimation } from '../figure/ExerciseAnimation'
 import { estimateSeconds, formatClock, formatDuration, type Workout } from '../lib/planner'
 import { store } from '../lib/storage'
 
@@ -15,6 +16,8 @@ function startOfWeek(d = new Date()) {
   return x.getTime()
 }
 
+const listJoin = (items: string[]) => (items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`)
+
 export function Library({ onOpen, notify }: { onOpen: (w: Workout) => void; notify: (m: string) => void }) {
   const [tab, setTab] = useState<Tab>('history')
   const [history, setHistory] = useState(store.history)
@@ -27,98 +30,94 @@ export function Library({ onOpen, notify }: { onOpen: (w: Workout) => void; noti
   return (
     <main className="screen">
       <header className="page-head">
-        <p className="eyebrow">Library</p>
-        <h1>Your training</h1>
+        <h1 className="display">Training log</h1>
+        <p className="page-head__sub">Since Monday</p>
       </header>
 
-      <section className="summary-card">
-        <p className="eyebrow">This week</p>
-        <div className="stats">
-          <div className="stat">
-            <span className="stat__value">{week.length}</span>
-            <span className="stat__label">workouts</span>
-          </div>
-          <div className="stat">
-            <span className="stat__value">{weekMin}</span>
-            <span className="stat__label">minutes</span>
-          </div>
-          <div className="stat">
-            <span className="stat__value">{weekSets}</span>
-            <span className="stat__label">sets</span>
-          </div>
+      <dl className="tally">
+        <div>
+          <dt>Workouts</dt>
+          <dd className="num">{week.length}</dd>
         </div>
-      </section>
+        <div>
+          <dt>Minutes</dt>
+          <dd className="num">{weekMin}</dd>
+        </div>
+        <div>
+          <dt>Sets</dt>
+          <dd className="num">{weekSets}</dd>
+        </div>
+      </dl>
 
       <Segmented
-        label="Library section"
+        label="Show"
         value={tab}
         onChange={setTab}
         options={[
-          { id: 'history', label: `History${history.length ? ` · ${history.length}` : ''}` },
-          { id: 'saved', label: `Saved${saved.length ? ` · ${saved.length}` : ''}` },
+          { id: 'history', label: 'History' },
+          { id: 'saved', label: `Saved workouts` },
         ]}
       />
 
       {tab === 'history' &&
         (history.length === 0 ? (
-          <div className="empty">
-            <Icon name="history" size={28} />
-            <p>Finished workouts will show up here.</p>
-          </div>
+          <p className="empty-note">Finish a workout and it will be logged here.</p>
         ) : (
-          <ul className="card-list">
-            {history.map((h) => (
-              <li key={h.id} className="list-card">
-                <div className="list-card__main">
-                  <span className="eyebrow">
-                    {new Date(h.finishedAt).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })} ·{' '}
-                    {new Date(h.finishedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+          <ul className="log">
+            {history.map((h) => {
+              const d = new Date(h.finishedAt)
+              return (
+                <li key={h.id} className="log__row">
+                  <span className="log__date">
+                    <span className="num">{d.getDate()}</span>
+                    <span>{d.toLocaleDateString(undefined, { month: 'short' })}</span>
                   </span>
-                  <strong>{h.name}</strong>
-                  <span className="muted">
-                    {formatClock(h.durationSec)} · {h.setsDone}/{h.totalSets} sets · {h.exercises.length} exercises
+                  <span className="log__text">
+                    <strong>{h.name}</strong>
+                    <span className="muted">
+                      {formatClock(h.durationSec)}, {h.setsDone} of {h.totalSets} sets
+                    </span>
                   </span>
-                </div>
-                <button
-                  className="icon-btn icon-btn--sm"
-                  aria-label={`Delete ${h.name} from history`}
-                  onClick={() => {
-                    store.removeHistory(h.id)
-                    setHistory(store.history())
-                    notify('Removed from history')
-                  }}
-                >
-                  <Icon name="trash" size={18} />
-                </button>
-              </li>
-            ))}
+                  <button
+                    className="icon-btn icon-btn--sm"
+                    aria-label={`Delete ${h.name} from history`}
+                    onClick={() => {
+                      store.removeHistory(h.id)
+                      setHistory(store.history())
+                      notify('Deleted from history')
+                    }}
+                  >
+                    <Icon name="trash" size={18} />
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         ))}
 
       {tab === 'saved' &&
         (saved.length === 0 ? (
-          <div className="empty">
-            <Icon name="bookmark" size={28} />
-            <p>Tap the bookmark on a plan to save it for later.</p>
-          </div>
+          <p className="empty-note">Save a plan from its plan screen to reuse it later.</p>
         ) : (
-          <ul className="card-list">
+          <ul className="log">
             {saved.map(({ workout: w }) => (
-              <li key={w.id} className="list-card">
-                <button className="list-card__main list-card__main--btn" onClick={() => onOpen(w)}>
-                  <span className="eyebrow">{w.muscles.map(muscleLabel).join(' · ')}</span>
-                  <strong>{w.name}</strong>
-                  <span className="muted">
-                    {w.items.length} exercises · {formatDuration(estimateSeconds(w))}
+              <li key={w.id} className="log__row">
+                <button className="log__open" onClick={() => onOpen(w)}>
+                  <span className="thumb">{w.items[0] && <ExerciseAnimation exerciseId={w.items[0].exerciseId} frame={1} />}</span>
+                  <span className="log__text">
+                    <strong>{w.name}</strong>
+                    <span className="muted">
+                      {w.items.length} exercises for {listJoin(w.muscles.map((m) => muscleLabel(m).toLowerCase()))}, about {formatDuration(estimateSeconds(w))}
+                    </span>
                   </span>
                 </button>
                 <button
                   className="icon-btn icon-btn--sm"
-                  aria-label={`Delete saved ${w.name}`}
+                  aria-label={`Delete saved workout ${w.name}`}
                   onClick={() => {
                     store.removeSaved(w.id)
                     setSaved(store.saved())
-                    notify('Removed from saved')
+                    notify('Removed from saved workouts')
                   }}
                 >
                   <Icon name="trash" size={18} />

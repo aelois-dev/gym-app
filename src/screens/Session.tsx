@@ -3,7 +3,7 @@ import { Icon } from '../components/Icon'
 import { ExerciseSheet } from '../components/ExerciseSheet'
 import { ProgressRing, Sheet } from '../components/ui'
 import { ExerciseAnimation } from '../figure/ExerciseAnimation'
-import { KIT_LABEL, getExercise, muscleLabel } from '../data/exercises'
+import { getExercise } from '../data/exercises'
 import { alarm, keepAwake, tick, unlockAudio } from '../lib/feedback'
 import { WARMUP_SEC, formatClock, uid, type Workout } from '../lib/planner'
 import type { ActiveSession, HistoryEntry } from '../lib/storage'
@@ -147,9 +147,9 @@ export function Session({
           <Icon name="down" />
         </button>
         <div className="top-bar__title top-bar__title--center">
-          <span className="eyebrow">{workout.name}</span>
-          <span className="clock">
-            {formatClock(elapsed)} <span className="muted">/ {workout.targetMin}:00</span>
+          <span className="top-bar__name">{workout.name}</span>
+          <span className="clock num">
+            {formatClock(elapsed)} <span className="muted">of {workout.targetMin}:00</span>
           </span>
         </div>
         <button className="icon-btn" onClick={() => onSound(!sound)} aria-label={sound ? 'Mute sounds' : 'Turn sounds on'} aria-pressed={sound}>
@@ -157,25 +157,22 @@ export function Session({
         </button>
       </header>
 
-      <div className="progress" aria-label={`${setsDone} of ${totalSets} sets done`}>
+      <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={totalSets} aria-valuenow={setsDone} aria-label="Sets done">
         <div className="progress__fill" style={{ width: `${(setsDone / totalSets) * 100}%` }} />
       </div>
-      <p className="progress__label">
-        {setsDone} / {totalSets} sets
-      </p>
 
-      {flashing && (
+      {flashing && step.kind === 'work' && item && (
         <div className="flash" role="alert">
-          <Icon name="flame" size={18} /> Rest over — let's go
+          Rest's over. Set {step.set} of {item.sets}.
         </div>
       )}
 
       {step.kind === 'warmup' && (
         <section className="stage">
-          <span className="stage__kicker">Warm-up</span>
-          <ProgressRing progress={1 - remaining / WARMUP_SEC} size={200}>
-            <span className="ring__time">{formatClock(remaining)}</span>
-            <span className="ring__label">remaining</span>
+          <h1 className="display">Warm up</h1>
+          <ProgressRing progress={1 - remaining / WARMUP_SEC} size={220}>
+            <span className="ring__time num">{formatClock(remaining)}</span>
+            <span className="ring__label">left</span>
           </ProgressRing>
           <ul className="idea-list">
             {WARMUP_IDEAS.map((t) => (
@@ -187,22 +184,20 @@ export function Session({
 
       {step.kind === 'rest' && item && ex && (
         <section className="stage">
-          <span className="stage__kicker">Rest</span>
-          <ProgressRing progress={1 - remaining / workout.restSec} size={220}>
-            <span className="ring__time">{formatClock(remaining)}</span>
+          <h1 className="display">Rest</h1>
+          <ProgressRing progress={1 - remaining / workout.restSec} size={250}>
+            <span className="ring__time num">{formatClock(remaining)}</span>
             <span className="ring__label">of {formatClock(workout.restSec)}</span>
           </ProgressRing>
-          <button className="next-card" onClick={() => setDemo(true)} aria-label={`Up next: ${ex.name}. Show demo`}>
-            {step.set === 1 && (
-              <span className="next-card__demo">
-                <ExerciseAnimation exerciseId={ex.id} />
-              </span>
-            )}
-            <span className="next-card__text">
-              <span className="eyebrow">{step.set === 1 ? 'Next exercise' : 'Up next'}</span>
+          <button className="next-row" onClick={() => setDemo(true)} aria-label={`Next: ${ex.name}. Watch the demo`}>
+            <span className="thumb thumb--lg">
+              <ExerciseAnimation exerciseId={ex.id} paused={step.set !== 1} frame={step.set !== 1 ? 1 : undefined} />
+            </span>
+            <span className="next-row__text">
+              <span className="muted">{step.set === 1 ? 'Next exercise' : 'Next set'}</span>
               <strong>{ex.name}</strong>
               <span className="muted">
-                Set {step.set} of {item.sets} · {item.reps} {ex.timed ? 'sec' : 'reps'}
+                Set {step.set} of {item.sets}, {item.reps} {ex.timed ? 'seconds' : 'reps'}
               </span>
             </span>
           </button>
@@ -211,65 +206,55 @@ export function Session({
 
       {step.kind === 'work' && item && ex && (
         <section className="stage stage--work">
-          <span className="eyebrow">
+          <p className="stage__count">
             Exercise {step.item + 1} of {workout.items.length}
-          </span>
-          <h1 className="work-title">{ex.name}</h1>
-          <div className="tags tags--center">
-            <span className="tag">{muscleLabel(ex.muscle)}</span>
-            <span className="tag tag--muted">{KIT_LABEL[ex.kit]}</span>
-          </div>
+          </p>
+          <h1 className="display work-title">{ex.name}</h1>
 
           {ex.timed && endAt !== null ? (
             <ProgressRing progress={1 - remaining / item.reps} size={230}>
-              <span className="ring__time">{formatClock(remaining)}</span>
+              <span className="ring__time num">{formatClock(remaining)}</span>
               <span className="ring__label">hold</span>
             </ProgressRing>
           ) : (
-            <div className="target">
-              <span className="target__value">{item.reps}</span>
-              <span className="target__unit">{ex.timed ? 'seconds' : 'reps'}</span>
-            </div>
+            <button className="work-demo" onClick={() => setDemo(true)} aria-label={`Show ${ex.name} demo and form tip`}>
+              <ExerciseAnimation exerciseId={ex.id} />
+            </button>
           )}
 
-          <div className="set-dots" aria-label={`Set ${step.set} of ${item.sets}`}>
-            {Array.from({ length: item.sets }, (_, i) => (
-              <span key={i} className={`set-dot ${i + 1 < step.set ? 'is-done' : i + 1 === step.set ? 'is-now' : ''}`} />
-            ))}
-          </div>
-          <p className="set-label">
-            Set {step.set} of {item.sets}
-          </p>
-
-          <button className="tip-card" onClick={() => setDemo(true)}>
-            <span className="tip-card__demo">
-              <ExerciseAnimation exerciseId={ex.id} />
-            </span>
-            <span className="tip-card__text">
-              <span>{ex.cue}</span>
-              <span className="tip-card__link">
-                <Icon name="play" size={12} /> Watch demo
+          <div className="work-target">
+            <span className="target__value num">{item.reps}</span>
+            <span className="target__unit">{ex.timed ? 'seconds' : 'reps'}</span>
+            <span className="work-target__sets">
+              <span className="set-dots" aria-hidden="true">
+                {Array.from({ length: item.sets }, (_, i) => (
+                  <span key={i} className={`set-dot ${i + 1 < step.set ? 'is-done' : i + 1 === step.set ? 'is-now' : ''}`} />
+                ))}
+              </span>
+              <span className="set-label">
+                Set {step.set} of {item.sets}
               </span>
             </span>
-          </button>
+          </div>
+          <p className="cue cue--work">{ex.cue}</p>
         </section>
       )}
 
       <div className="cta-bar cta-bar--session">
         {step.kind === 'warmup' && (
           <button className="btn btn--primary btn--block btn--lg" onClick={() => goTo(stepIndex + 1)}>
-            I'm warm — start lifting
+            Start lifting
           </button>
         )}
         {step.kind === 'rest' && (
           <div className="adjust">
-            <button className="btn btn--ghost btn--lg" onClick={() => adjust(-15)} aria-label="Remove 15 seconds">
+            <button className="btn btn--quiet btn--lg" onClick={() => adjust(-15)} aria-label="Remove 15 seconds">
               −15s
             </button>
             <button className="btn btn--primary btn--lg" onClick={() => goTo(stepIndex + 1)}>
               <Icon name="skip" size={18} /> Skip rest
             </button>
-            <button className="btn btn--ghost btn--lg" onClick={() => adjust(15)} aria-label="Add 15 seconds">
+            <button className="btn btn--quiet btn--lg" onClick={() => adjust(15)} aria-label="Add 15 seconds">
               +15s
             </button>
           </div>
@@ -282,7 +267,7 @@ export function Session({
               </button>
             ) : (
               <button className="btn btn--primary btn--block btn--lg" onClick={completeSet}>
-                <Icon name="check" size={20} /> {ex.timed ? 'Done early' : 'Set done'}
+                {ex.timed ? 'Done early' : 'Set done'}
               </button>
             )}
           </>
@@ -312,7 +297,7 @@ export function Session({
           <button className="btn btn--danger btn--block" onClick={() => onFinish(null)}>
             Discard workout
           </button>
-          <button className="btn btn--ghost btn--block" onClick={() => setMenu(false)}>
+          <button className="btn btn--quiet btn--block" onClick={() => setMenu(false)}>
             Keep going
           </button>
         </div>

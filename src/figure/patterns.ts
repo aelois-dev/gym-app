@@ -55,9 +55,9 @@ export const PATTERNS = {
   // ---------- legs ----------
   squat: { a: stand(fk(90, 90)), b: { hip: [78, 114], t: 38, arm: fk(90, 90), leg: feet() } },
   squatBack: {
-    a: stand(sh(-7, 3, -1)),
-    b: { hip: [78, 114], t: 40, arm: sh(-7, 3, -1), leg: feet() },
-    loadAt: { on: 'shoulder', offset: [-6, -2] },
+    a: stand(sh(-9, 4, -1)),
+    b: { hip: [78, 114], t: 40, arm: sh(-9, 4, -1), leg: feet() },
+    loadAt: { on: 'shoulder', offset: [-11, 3] },
   },
   squatFront: { a: stand(sh(9, -2, -1)), b: { hip: [80, 116], t: 22, arm: sh(9, -2, -1), leg: feet() } },
   squatGoblet: { a: stand(sh(12, 14)), b: { hip: [79, 116], t: 26, arm: sh(12, 14), leg: feet() } },

@@ -66,27 +66,37 @@ export function Segmented<T extends string>({
   )
 }
 
-export function ProgressRing({ progress, size = 260, stroke = 14, children }: { progress: number; size?: number; stroke?: number; children?: ReactNode }) {
-  const r = (size - stroke) / 2
-  const c = 2 * Math.PI * r
+/** A countdown dial styled like a weight plate: iron rim, red progress, raised hub. */
+export function ProgressRing({ progress, size = 260, children }: { progress: number; size?: number; stroke?: number; children?: ReactNode }) {
+  const c = size / 2
+  const rimW = size * 0.085
+  const r = c - rimW / 2 - 2
+  const circ = 2 * Math.PI * r
   const p = Math.min(1, Math.max(0, progress))
+  const ticks = Array.from({ length: 60 }, (_, i) => {
+    const a = (i / 60) * Math.PI * 2
+    const r1 = r - rimW / 2 - 6
+    const r2 = r1 - (i % 5 === 0 ? 7 : 3.5)
+    return `M${(c + r1 * Math.sin(a)).toFixed(1)} ${(c - r1 * Math.cos(a)).toFixed(1)}L${(c + r2 * Math.sin(a)).toFixed(1)} ${(c - r2 * Math.cos(a)).toFixed(1)}`
+  }).join('')
   return (
     <div className="ring" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--track)" strokeWidth={stroke} />
+        <circle cx={c} cy={c} r={c - 1} className="ring__face" />
+        <circle cx={c} cy={c} r={r} fill="none" className="ring__rim" strokeWidth={rimW} />
         <circle
           className="ring__bar"
-          cx={size / 2}
-          cy={size / 2}
+          cx={c}
+          cy={c}
           r={r}
           fill="none"
-          stroke="var(--accent)"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={c * (1 - p)}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          strokeWidth={rimW}
+          strokeDasharray={circ}
+          strokeDashoffset={circ * (1 - p)}
+          transform={`rotate(-90 ${c} ${c})`}
         />
+        <path d={ticks} className="ring__ticks" />
+        <circle cx={c} cy={c} r={size * 0.29} className="ring__hub" />
       </svg>
       <div className="ring__inner">{children}</div>
     </div>

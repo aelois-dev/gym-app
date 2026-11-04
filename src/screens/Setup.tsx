@@ -30,23 +30,23 @@ export function Setup({
 
   const goal = GOALS.find((g) => g.id === prefs.goal)!
   const ready = prefs.muscles.length > 0
-  const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })
+  const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
     <main className="screen">
       <header className="page-head">
-        <p className="eyebrow">{today}</p>
-        <h1>Plan your session</h1>
+        <h1 className="display">Plan a session</h1>
+        <p className="page-head__sub">{today}</p>
       </header>
 
       {activeSession && (
-        <div className="banner">
-          <div className="banner__dot" />
-          <div className="banner__text">
+        <div className="notice">
+          <span className="notice__pulse" aria-hidden="true" />
+          <div className="notice__text">
             <strong>{activeSession.workout.name}</strong>
-            <span>Workout in progress · {formatClock((Date.now() - activeSession.startedAt) / 1000)} elapsed</span>
+            <span>In progress for {formatClock((Date.now() - activeSession.startedAt) / 1000)}</span>
           </div>
-          <button className="btn btn--sm btn--ghost" onClick={onDiscardSession}>
+          <button className="btn btn--sm btn--quiet" onClick={onDiscardSession}>
             End
           </button>
           <button className="btn btn--sm btn--primary" onClick={onResume}>
@@ -56,47 +56,44 @@ export function Setup({
       )}
 
       {!activeSession && draft && (
-        <button className="banner banner--link" onClick={onOpenDraft}>
-          <div className="banner__text">
-            <strong>{draft.name}</strong>
+        <button className="notice notice--link" onClick={onOpenDraft}>
+          <div className="notice__text">
+            <strong>Back to {draft.name}</strong>
             <span>
-              Last plan · {draft.items.length} exercises · {formatDuration(estimateSeconds(draft))}
+              {draft.items.length} exercises, about {formatDuration(estimateSeconds(draft))}
             </span>
           </div>
           <Icon name="back" className="flip" />
         </button>
       )}
 
-      <section className="field">
-        <div className="field__head">
-          <h2>Target muscles</h2>
+      <section className="block">
+        <div className="block__head">
+          <h2>What are you training?</h2>
           {prefs.muscles.length > 0 && (
             <button className="link" onClick={() => onChange({ ...prefs, muscles: [] })}>
               Clear
             </button>
           )}
         </div>
-        <div className="chips">
+        <div className="pills">
           {MUSCLES.map((m) => {
             const on = prefs.muscles.includes(m.id)
             return (
-              <button key={m.id} className={`chip ${on ? 'is-on' : ''}`} aria-pressed={on} onClick={() => toggle(m.id)}>
-                <span>{m.label}</span>
-                <span className="chip__check">
-                  <Icon name="check" size={14} />
-                </span>
+              <button key={m.id} className={`pill ${on ? 'is-on' : ''}`} aria-pressed={on} onClick={() => toggle(m.id)}>
+                {on && <Icon name="check" size={16} />}
+                {m.label}
               </button>
             )
           })}
         </div>
       </section>
 
-      <section className="field">
-        <div className="field__head">
-          <h2>Time available</h2>
-          <span className="big-value">
-            {prefs.minutes}
-            <small> min</small>
+      <section className="block">
+        <div className="block__head">
+          <h2>How long do you have?</h2>
+          <span className="readout">
+            <span className="num">{prefs.minutes}</span> min
           </span>
         </div>
         <input
@@ -110,26 +107,21 @@ export function Setup({
           aria-label="Minutes available"
           style={{ ['--fill' as string]: `${((prefs.minutes - 15) / 105) * 100}%` }}
         />
-        <div className="presets">
+        <div className="presets" role="group" aria-label="Quick times">
           {TIME_PRESETS.map((t) => (
-            <button key={t} className={`preset ${prefs.minutes === t ? 'is-on' : ''}`} onClick={() => onChange({ ...prefs, minutes: t })}>
+            <button key={t} className={`preset ${prefs.minutes === t ? 'is-on' : ''}`} aria-pressed={prefs.minutes === t} onClick={() => onChange({ ...prefs, minutes: t })}>
               {t}
             </button>
           ))}
         </div>
       </section>
 
-      <section className="field">
+      <section className="block">
         <h2>Equipment</h2>
-        <Segmented
-          label="Equipment"
-          value={prefs.equipment}
-          onChange={(equipment) => onChange({ ...prefs, equipment })}
-          options={EQUIPMENT.map((e) => ({ id: e.id, label: e.label, sub: e.hint }))}
-        />
+        <Segmented label="Equipment" value={prefs.equipment} onChange={(equipment) => onChange({ ...prefs, equipment })} options={EQUIPMENT.map((e) => ({ id: e.id, label: e.label }))} />
       </section>
 
-      <section className="field">
+      <section className="block">
         <h2>Goal</h2>
         <Segmented
           label="Goal"
@@ -139,36 +131,29 @@ export function Setup({
         />
       </section>
 
-      <section className="field field--row">
-        <div>
-          <h2>Rest between sets</h2>
-          <p className="hint">Suggested for {goal.label.toLowerCase()}: {formatClock(goal.rest)}</p>
+      <div className="rows">
+        <div className="row">
+          <div className="row__text">
+            <h2>Rest between sets</h2>
+            <p>{formatClock(goal.rest)} suits {goal.label.toLowerCase()} work</p>
+          </div>
+          <Stepper label="Rest time" value={prefs.restSec} min={15} max={300} step={15} onChange={(restSec) => onChange({ ...prefs, restSec })} format={formatClock} />
         </div>
-        <Stepper label="Rest time" value={prefs.restSec} min={15} max={300} step={15} onChange={(restSec) => onChange({ ...prefs, restSec })} format={formatClock} />
-      </section>
-
-      <section className="field field--row">
-        <div>
-          <h2>Warm-up</h2>
-          <p className="hint">5 min of light cardio and mobility work</p>
-        </div>
-        <label className="switch">
-          <input type="checkbox" checked={prefs.warmup} onChange={(e) => onChange({ ...prefs, warmup: e.target.checked })} />
-          <span className="switch__track" />
-          <span className="sr-only">Include warm-up</span>
+        <label className="row">
+          <div className="row__text">
+            <h2>Warm up first</h2>
+            <p>5 minutes of easy cardio and mobility</p>
+          </div>
+          <span className="switch">
+            <input type="checkbox" checked={prefs.warmup} onChange={(e) => onChange({ ...prefs, warmup: e.target.checked })} />
+            <span className="switch__track" />
+          </span>
         </label>
-      </section>
+      </div>
 
       <div className="cta-bar">
         <button className="btn btn--primary btn--block btn--lg" disabled={!ready} onClick={onBuild}>
-          {ready ? (
-            <>
-              Build workout
-              <span className="btn__meta">{prefs.minutes} min</span>
-            </>
-          ) : (
-            'Pick at least one muscle'
-          )}
+          {ready ? `Build a ${prefs.minutes}-minute workout` : 'Choose a muscle to start'}
         </button>
       </div>
     </main>
