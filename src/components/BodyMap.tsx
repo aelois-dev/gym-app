@@ -1,4 +1,4 @@
-import type { KeyboardEvent, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { MUSCLES, type Muscle } from '../data/exercises'
 import { Part, capsule, ellipse } from '../figure/ExerciseAnimation'
 import type { Pt } from '../figure/rig'
@@ -20,15 +20,6 @@ type RegionShapes = (cx: number) => ReactNode
 const REGIONS: Record<Side, { muscle: Muscle; draw: RegionShapes }[]> = {
   front: [
     {
-      muscle: 'shoulders',
-      draw: (cx) => (
-        <>
-          <circle cx={cx - 21} cy={41} r={7.4} />
-          <circle cx={cx + 21} cy={41} r={7.4} />
-        </>
-      ),
-    },
-    {
       muscle: 'chest',
       draw: (cx) => (
         <>
@@ -41,8 +32,8 @@ const REGIONS: Record<Side, { muscle: Muscle; draw: RegionShapes }[]> = {
       muscle: 'biceps',
       draw: (cx) => (
         <>
-          <path d={capsule([cx - 24.5, 47], [cx - 29.5, 68], 5.4, 4.6)} />
-          <path d={capsule([cx + 24.5, 47], [cx + 29.5, 68], 5.4, 4.6)} />
+          <path d={capsule([cx - 26, 53], [cx - 29.5, 68], 5.2, 4.6)} />
+          <path d={capsule([cx + 26, 53], [cx + 29.5, 68], 5.2, 4.6)} />
         </>
       ),
     },
@@ -56,17 +47,17 @@ const REGIONS: Record<Side, { muscle: Muscle; draw: RegionShapes }[]> = {
         </>
       ),
     },
-  ],
-  back: [
     {
       muscle: 'shoulders',
       draw: (cx) => (
         <>
-          <circle cx={cx - 21} cy={41} r={7.4} />
-          <circle cx={cx + 21} cy={41} r={7.4} />
+          {ellipse([cx - 22.5, 44], [-0.28, 1], 9.6, 7.4, 'dl')}
+          {ellipse([cx + 22.5, 44], [0.28, 1], 9.6, 7.4, 'dr')}
         </>
       ),
     },
+  ],
+  back: [
     {
       muscle: 'back',
       draw: (cx) => (
@@ -81,8 +72,8 @@ const REGIONS: Record<Side, { muscle: Muscle; draw: RegionShapes }[]> = {
       muscle: 'triceps',
       draw: (cx) => (
         <>
-          <path d={capsule([cx - 24.5, 47], [cx - 29.5, 68], 5.4, 4.6)} />
-          <path d={capsule([cx + 24.5, 47], [cx + 29.5, 68], 5.4, 4.6)} />
+          <path d={capsule([cx - 26, 53], [cx - 29.5, 68], 5.2, 4.6)} />
+          <path d={capsule([cx + 26, 53], [cx + 29.5, 68], 5.2, 4.6)} />
         </>
       ),
     },
@@ -106,6 +97,15 @@ const REGIONS: Record<Side, { muscle: Muscle; draw: RegionShapes }[]> = {
         </>
       ),
     },
+    {
+      muscle: 'shoulders',
+      draw: (cx) => (
+        <>
+          {ellipse([cx - 22.5, 44], [-0.28, 1], 9.6, 7.4, 'dl')}
+          {ellipse([cx + 22.5, 44], [0.28, 1], 9.6, 7.4, 'dr')}
+        </>
+      ),
+    },
   ],
 }
 
@@ -119,7 +119,7 @@ export const BODY_MAP_MUSCLES: Record<Side, Muscle[]> = {
 function Body({ cx }: { cx: number }) {
   const limbs = (sx: number) => (
     <>
-      <circle cx={cx + sx * 21} cy={41} r={7.6} />
+      {ellipse([cx + sx * 22.5, 44], [sx * 0.28, 1], 10, 7.9, `delt${sx}`)}
       <path d={capsule([cx + sx * 24.5, 46], [cx + sx * 29.5, 70], 5.8, 4.8)} />
       <path d={capsule([cx + sx * 29.5, 70], [cx + sx * 34, 96], 4.6, 3.4)} />
       <circle cx={cx + sx * 35} cy={101} r={4.1} />
@@ -151,27 +151,15 @@ function Figure({ side, cx, selected, onToggle }: { side: Side; cx: number; sele
       {REGIONS[side].map(({ muscle, draw }) => {
         const on = selected.has(muscle)
         const label = MUSCLES.find((m) => m.id === muscle)!.label
-        const keys = (e: KeyboardEvent) => {
-          if (e.key === ' ' || e.key === 'Enter') {
-            e.preventDefault()
-            onToggle?.(muscle)
-          }
-        }
-        // Legs and shoulders show on both figures; only the front copy is announced and focusable.
-        const duplicate = side === 'back' && BODY_MAP_MUSCLES.front.includes(muscle)
+        // The map is a pointer shortcut; the labelled buttons under it are the accessible control.
         return (
           <g
             key={muscle}
+            data-muscle={muscle}
             className={`bm-region ${on ? 'is-on' : ''} ${interactive ? 'is-interactive' : ''}`}
-            {...(interactive
-              ? {
-                  onClick: () => onToggle(muscle),
-                  ...(duplicate
-                    ? { 'aria-hidden': true }
-                    : { role: 'checkbox', 'aria-checked': on, 'aria-label': label, tabIndex: 0, onKeyDown: keys }),
-                }
-              : {})}
+            {...(interactive ? { onClick: () => onToggle(muscle) } : {})}
           >
+            {interactive && <title>{label}</title>}
             {/* A wider invisible copy makes small muscles easy to tap. */}
             {interactive && <g className="bm-hit">{draw(cx)}</g>}
             <g className="bm-shape">{draw(cx)}</g>
@@ -199,7 +187,7 @@ export function BodyMap({
     <svg
       className={`bodymap bodymap--${size} ${className ?? ''}`}
       viewBox="0 0 200 196"
-      {...(onToggle ? { role: 'group', 'aria-label': 'Muscles to train' } : { role: 'img', 'aria-label': worked ? `Worked: ${worked}` : 'No muscles worked' })}
+      {...(onToggle ? { 'aria-hidden': true } : { role: 'img', 'aria-label': worked ? `Worked: ${worked}` : 'No muscles worked' })}
     >
       <Figure side="front" cx={52} selected={set} onToggle={onToggle} />
       <Figure side="back" cx={148} selected={set} onToggle={onToggle} />

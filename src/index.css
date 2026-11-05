@@ -460,12 +460,17 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   }
 }
 
-.selection { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: -10px; }
-.selection__text { font-stretch: 68%; font-weight: 800; font-size: 28px; line-height: 1.05; text-wrap: balance; }
-.selection__text.is-empty { font-stretch: 100%; font-weight: 500; font-size: 15px; color: var(--text-2); }
 
 .block--map { gap: 18px; }
 .sheet__done { margin-top: 18px; }
 .summary__head { align-items: flex-start; }
 .summary__head .bodymap { margin: 0 auto 8px; max-width: 300px; }
 .log__row .bodymap--sm { margin-left: -4px; }
+
+.pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -6px; }
+.pill {
+  min-height: 40px; padding: 0 14px; border-radius: 999px;
+  border: 1.5px solid var(--rule); font-weight: 600; font-size: 14.5px;
+  transition: background-color 0.12s, color 0.12s, border-color 0.12s;
+}
+.pill.is-on { background: var(--red); border-color: var(--red); color: var(--on-red); }

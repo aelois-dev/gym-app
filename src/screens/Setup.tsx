@@ -5,7 +5,6 @@ import { Segmented, Sheet, Stepper } from '../components/ui'
 import { EQUIPMENT, MUSCLES, type Muscle } from '../data/exercises'
 import { GOALS, MAX_EXERCISES, formatClock, formatDuration, estimateSeconds, type Workout } from '../lib/planner'
 import type { ActiveSession, Prefs } from '../lib/storage'
-import { capitalize, listJoin } from '../lib/text'
 
 const TIME_PRESETS = [20, 30, 45, 60, 90]
 
@@ -33,7 +32,6 @@ export function Setup({
     onChange({ ...prefs, muscles: prefs.muscles.includes(m) ? prefs.muscles.filter((x) => x !== m) : [...prefs.muscles, m] })
 
   const ready = prefs.muscles.length > 0
-  const chosen = MUSCLES.filter((m) => prefs.muscles.includes(m.id)).map((m) => m.label.toLowerCase())
 
   return (
     <main className="screen">
@@ -70,14 +68,24 @@ export function Setup({
       )}
 
       <section className="block block--map">
-        <BodyMap selected={prefs.muscles} onToggle={toggle} />
-        <div className="selection" aria-live="polite">
-          <p className={`selection__text ${ready ? '' : 'is-empty'}`}>{ready ? capitalize(listJoin(chosen)) : 'Tap the muscles you want to train.'}</p>
+        <div className="block__head">
+          <h2>What are you training?</h2>
           {ready && (
             <button className="link" onClick={() => onChange({ ...prefs, muscles: [] })}>
               Clear
             </button>
           )}
+        </div>
+        <BodyMap selected={prefs.muscles} onToggle={toggle} />
+        <div className="pills" role="group" aria-label="Muscles to train">
+          {MUSCLES.map((m) => {
+            const on = prefs.muscles.includes(m.id)
+            return (
+              <button key={m.id} className={`pill ${on ? 'is-on' : ''}`} aria-pressed={on} onClick={() => toggle(m.id)}>
+                {m.label}
+              </button>
+            )
+          })}
         </div>
       </section>
 
