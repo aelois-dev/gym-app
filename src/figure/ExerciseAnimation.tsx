@@ -104,15 +104,35 @@ export function highlightFor(exerciseId: string): Highlight {
 }
 
 // ---------- body ----------
+// The figure is drawn as a clothed character: skin, a T-shirt with sleeves, shorts and shoes,
+// each piece filled in its own colour inside one ink outline (see Part). Hems and a few
+// muscle lines are drawn as thin ink strokes; the worked muscle is painted red on top.
+const at = (a: Pt, b: Pt, k: number): Pt => add(a, mul(sub(b, a), k))
+const perp = (v: Pt): Pt => [-v[1], v[0]]
+/** A straight-sided band from a (half-width wa) to b (half-width wb); n is the across direction. */
+const quad = (a: Pt, b: Pt, n: Pt, wa: number, wb: number) => {
+  const p = [add(a, mul(n, wa)), add(b, mul(n, wb)), add(b, mul(n, -wb)), add(a, mul(n, -wa))]
+  return `M${p.map((q) => `${f(q[0])} ${f(q[1])}`).join('L')}Z`
+}
+const line = (a: Pt, b: Pt, key: string) => <path key={key} className="fig-line" d={seg(a, b)} />
+
 function Arm({ sk, far, hi }: { sk: Skeleton; far?: boolean; hi: Highlight | null }) {
   const l = far ? sk.arm2 : sk.arm
-  const muscle = hi === 'upperArm'
+  const upper = sub(l.mid, l.root)
+  const uDir = unit(upper)
+  const uLen = Math.hypot(upper[0], upper[1])
+  const fDir = unit(sub(l.end, l.mid))
+  const fn = perp(fDir)
   return (
     <>
-      <path className={muscle ? 'fig-muscle' : undefined} d={capsule(l.root, l.mid, 4.7, 3.7)} />
-      <path d={capsule(l.mid, l.end, 3.7, 2.7)} />
-      <circle cx={f(l.end[0])} cy={f(l.end[1])} r={3.3} />
-      <circle className={hi === 'shoulders' ? 'fig-muscle' : undefined} cx={f(l.root[0])} cy={f(l.root[1])} r={5.6} />
+      <path className="p-skin" d={capsule(l.root, l.mid, 4.4, 3.6)} />
+      <path className="p-skin" d={capsule(l.mid, l.end, 3.6, 2.6)} />
+      <circle className="p-skin" cx={f(l.end[0])} cy={f(l.end[1])} r={3.1} />
+      <circle className="p-shirt" cx={f(l.root[0])} cy={f(l.root[1])} r={5.9} />
+      <path className="p-shirt hem" d={capsule(l.root, add(l.root, mul(uDir, uLen * 0.46)), 5.9, 5.1)} />
+      {hi === 'upperArm' && ellipse(at(l.root, l.mid, 0.73), uDir, uLen * 0.22, 3, 'hi-arm', 'fig-muscle')}
+      {hi === 'shoulders' && <circle className="fig-muscle" cx={f(l.root[0])} cy={f(l.root[1])} r={4.6} />}
+      {line(add(at(l.mid, l.end, 0.18), mul(fn, 1.3)), add(at(l.mid, l.end, 0.55), mul(fn, 0.7)), 'fore')}
     </>
   )
 }
@@ -122,11 +142,22 @@ function Leg({ sk, far, hi }: { sk: Skeleton; far?: boolean; hi: Highlight | nul
   const toe = l.toe ?? l.end
   const footDir = unit(sub(toe, l.end))
   const heel = add(l.end, mul(footDir, -2.6))
+  const thigh = sub(l.mid, l.root)
+  const tDir = unit(thigh)
+  const tLen = Math.hypot(thigh[0], thigh[1])
+  const sDir = unit(sub(l.end, l.mid))
+  // The calf sits on the side of the shin away from the toes.
+  let back = perp(sDir)
+  if (back[0] * footDir[0] + back[1] * footDir[1] > 0) back = mul(back, -1)
   return (
     <>
-      <path className={hi === 'thighs' ? 'fig-muscle' : undefined} d={capsule(l.root, l.mid, 7.4, 4.9)} />
-      <path className={hi === 'calves' ? 'fig-muscle' : undefined} d={capsule(l.mid, l.end, 5, 3)} />
-      <path d={capsule(heel, add(toe, mul(footDir, 1.5)), 3.2, 2.1)} />
+      <path className="p-skin" d={capsule(l.root, l.mid, 7.1, 4.7)} />
+      <path className="p-skin" d={capsule(l.mid, l.end, 4.8, 2.9)} />
+      <path className="p-shoe" d={capsule(heel, add(toe, mul(footDir, 1.5)), 3.3, 2.3)} />
+      <path className="p-shorts hem" d={capsule(add(l.root, mul(tDir, -1)), add(l.root, mul(tDir, tLen * 0.56)), 8.3, 7.2)} />
+      {hi === 'thighs' && ellipse(at(l.root, l.mid, 0.62), tDir, tLen * 0.3, 4, 'hi-thigh', 'fig-muscle')}
+      {hi === 'calves' && ellipse(add(at(l.mid, l.end, 0.34), mul(back, 1.5)), sDir, 6.5, 3.1, 'hi-calf', 'fig-muscle')}
+      {line(add(at(l.mid, l.end, 0.14), mul(back, 2.6)), add(at(l.mid, l.end, 0.55), mul(back, 1.3)), 'calf')}
     </>
   )
 }
@@ -141,14 +172,16 @@ function Torso({ sk, front, hi }: { sk: Skeleton; front: boolean; hi: Highlight 
   const ribW = front ? 15 : 10.5
   const pelW = front ? 11.5 : 9.5
   const waist = front ? 9 : 8
+  const hair = add(add(sk.head, mul(up, front ? 3.4 : 3.2)), mul(chestSide, front ? 0 : -3.6))
   return (
     <>
-      {ellipse(ribC, up, 14 * sc, ribW, 'rib')}
-      <path d={capsule(ribC, pelC, waist, waist)} />
-      {ellipse(pelC, up, 9, pelW, 'pel')}
-      <path d={capsule(add(sk.shoulder, mul(up, -1)), sk.head, 3.4, 3.4)} />
-      {ellipse(sk.head, up, 8.6, 7.4, 'head')}
-      {!front && <circle cx={f(sk.head[0] + chestSide[0] * 7 - up[0] * 1.2)} cy={f(sk.head[1] + chestSide[1] * 7 - up[1] * 1.2)} r={2.4} />}
+      <path className="p-skin" d={capsule(add(sk.shoulder, mul(up, -1)), sk.head, 3.4, 3.4)} />
+      {ellipse(sk.head, up, 8.6, 7.4, 'head', 'p-skin')}
+      {!front && <circle className="p-skin" cx={f(sk.head[0] + chestSide[0] * 7 - up[0] * 1.2)} cy={f(sk.head[1] + chestSide[1] * 7 - up[1] * 1.2)} r={2.4} />}
+      {ellipse(hair, up, front ? 5.6 : 5.9, front ? 7.3 : 5.3, 'hair', 'p-hair')}
+      {ellipse(pelC, up, 9, pelW, 'pel', 'p-shorts')}
+      <path className="p-shirt hem" d={quad(ribC, at(ribC, pelC, 0.82), chestSide, front ? waist + 2 : waist, front ? waist + 2.6 : waist + 0.8)} />
+      {ellipse(ribC, up, 14 * sc, ribW, 'rib', 'p-shirt')}
       {hi === 'chest' && ellipse(add(add(sk.shoulder, mul(up, -9 * sc)), mul(chestSide, front ? 0 : 4.5)), up, (front ? 6.5 : 8.5) * sc, front ? 11 : 5.2, 'hi-chest', 'fig-muscle')}
       {hi === 'back' && ellipse(add(add(sk.shoulder, mul(up, -13 * sc)), mul(chestSide, front ? 0 : -3)), up, 11 * sc, front ? 12.5 : 5.2, 'hi-back', 'fig-muscle')}
       {hi === 'core' && ellipse(add(add(ribC, mul(sub(pelC, ribC), 0.55)), mul(chestSide, front ? 0 : 3.4)), up, 9, front ? 6 : 4.2, 'hi-core', 'fig-muscle')}

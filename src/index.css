@@ -27,6 +27,15 @@
   --fig-ground: #d6dade;
   --fig-body: #3a4148;
   --fig-far: #a1a8af;
+  --fig-ink: #22262b;
+  --fig-skin: #f2d3bd;
+  --fig-skin-far: #dcb8a0;
+  --fig-shirt: #f39aa3;
+  --fig-shirt-far: #d97f89;
+  --fig-shorts: #24282d;
+  --fig-shorts-far: #3d434a;
+  --fig-shoe: #24282d;
+  --fig-hair: #3a2e28;
   --fig-muscle: #d3242c;
   --fig-muscle-far: #e0868a;
   --fig-iron: #262a2f;
@@ -61,6 +70,15 @@
     --fig-ground: #1a1d20;
     --fig-body: #c4cacf;
     --fig-far: #5c636b;
+    --fig-ink: #0d0f11;
+    --fig-skin: #e9c8b1;
+    --fig-skin-far: #b8957f;
+    --fig-shirt: #ee8f99;
+    --fig-shirt-far: #b26a73;
+    --fig-shorts: #3b4148;
+    --fig-shorts-far: #2d3238;
+    --fig-shoe: #3b4148;
+    --fig-hair: #4a3b33;
     --fig-muscle: #f0434b;
     --fig-muscle-far: #8f3a3f;
     --fig-iron: #4f555c;
@@ -393,12 +411,20 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 /* ---------- exercise figure ---------- */
 .fig { display: block; width: 100%; height: auto; aspect-ratio: 5 / 4; background: radial-gradient(ellipse 70% 60% at 50% 40%, var(--fig-light), var(--fig-bg) 75%); }
 .fig-ground { fill: var(--fig-ground); }
-.fig-shadow { fill: var(--fig-body); opacity: 0.12; }
-.fig-body .fig-edge > * { fill: var(--fig-bg); stroke: var(--fig-bg); stroke-width: 2.4; stroke-linejoin: round; }
-.fig-body .fig-fill > * { fill: var(--fig-body); }
-.fig-body .fig-fill > .fig-muscle { fill: var(--fig-muscle); }
-.fig-body--far .fig-fill > * { fill: var(--fig-far); }
-.fig-body--far .fig-fill > .fig-muscle { fill: var(--fig-muscle-far); }
+.fig-shadow { fill: var(--fig-ink); opacity: 0.14; }
+/* The clothed character: one ink outline round each part, then skin, shirt, shorts and shoes. */
+.fig-body { --skin: var(--fig-skin); --shirt: var(--fig-shirt); --shorts: var(--fig-shorts); --shoe: var(--fig-shoe); --hair: var(--fig-hair); --muscle: var(--fig-muscle); }
+.fig-body--far { --skin: var(--fig-skin-far); --shirt: var(--fig-shirt-far); --shorts: var(--fig-shorts-far); --shoe: var(--fig-shorts-far); --hair: var(--fig-shorts-far); --muscle: var(--fig-muscle-far); }
+.fig-body .fig-edge > * { fill: var(--fig-ink); stroke: var(--fig-ink); stroke-width: 2.3; stroke-linejoin: round; }
+.fig-body .fig-edge > .fig-line { display: none; }
+.fig-body .fig-fill > * { fill: var(--skin); }
+.fig-body .fig-fill > .p-shirt { fill: var(--shirt); }
+.fig-body .fig-fill > .p-shorts { fill: var(--shorts); }
+.fig-body .fig-fill > .p-shoe { fill: var(--shoe); }
+.fig-body .fig-fill > .p-hair { fill: var(--hair); }
+.fig-body .fig-fill > .hem { stroke: var(--fig-ink); stroke-width: 0.8; }
+.fig-body .fig-fill > .fig-muscle { fill: var(--muscle); stroke: var(--fig-ink); stroke-width: 0.6; }
+.fig-body .fig-fill > .fig-line { fill: none; stroke: var(--fig-ink); stroke-width: 0.75; stroke-linecap: round; opacity: 0.55; }
 .fig-steel { fill: none; stroke: var(--fig-steel); stroke-linecap: round; }
 .fig-steel--soft { opacity: 0.55; }
 .fig-steel-fill { fill: var(--fig-steel); }

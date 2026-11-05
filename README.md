@@ -77,6 +77,6 @@ Install it as an app from the browser's **Add to Home Screen** option. Service w
 | `src/lib/presets.ts` | Fixed preset workouts (seeded, saved line-ups, done-before counts) |
 | `src/lib/warmup.ts` | Guided warm-up parts |
 | `src/lib/storage.ts` | localStorage for history, saved workouts, in-progress session and preferences |
-| `src/figure/*` | Animated exercise demos: a 2D mannequin rig (forward kinematics plus 2-bone IK) and the movement patterns each exercise maps to. Preview every animation at `/?figures` in `npm run dev`. |
+| `src/figure/*` | Animated exercise demos: a clothed 2D character (pink T-shirt, black shorts, ink outlines, worked muscle in red) on a rig (forward kinematics plus 2-bone IK) and the movement patterns each exercise maps to. Preview every animation at `/?figures` in `npm run dev`. |
 | `src/lib/feedback.ts` | Web Audio beeps, vibration, Wake Lock |
 | `src/screens/*` | Today, Plan tab (Setup), plan editor, Session, Summary, Progress (Library) and Habits |
