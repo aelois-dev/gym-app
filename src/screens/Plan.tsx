@@ -22,6 +22,7 @@ import {
 } from '../lib/planner'
 import { store } from '../lib/storage'
 import { formatKg, tracksWeight } from '../lib/weights'
+import { suggestWeight } from '../lib/progression'
 
 export function Plan({
   workout,
@@ -65,12 +66,14 @@ export function Plan({
   const choose = (ex: Exercise) => {
     if (!picker) return
     // A different exercise starts from the weight last used for it (if any).
-    const weightKg = tracksWeight(ex.kit) ? store.lastWeights()[ex.id] : undefined
+    const suggestion = suggestWeight(store.history(), ex.id, workout.readiness)
+    const weightKg = tracksWeight(ex.kit) ? (suggestion?.kg ?? store.lastWeights()[ex.id]) : undefined
+    const weightNote = suggestion?.reason
     if (picker.mode === 'swap') {
-      update(workout.items.map((i) => (i.uid === picker.uid ? { ...i, exerciseId: ex.id, ...keepOrDefault(i, ex, workout), weightKg } : i)))
+      update(workout.items.map((i) => (i.uid === picker.uid ? { ...i, exerciseId: ex.id, ...keepOrDefault(i, ex, workout), weightKg, weightNote } : i)))
       notify(`Swapped in ${ex.name}`)
     } else {
-      update([...workout.items, { uid: uid(), exerciseId: ex.id, ...defaultPrescription(ex, workout.goal), restSec: defaultRest(ex, workout), weightKg }])
+      update([...workout.items, { uid: uid(), exerciseId: ex.id, ...defaultPrescription(ex, workout.goal), restSec: defaultRest(ex, workout), weightKg, weightNote }])
       notify(`Added ${ex.name}`)
     }
     setPicker(null)
@@ -156,6 +159,7 @@ export function Plan({
                     <span className="plan-item__rest">{formatClock(restFor(it, workout))} rest</span>
                     <span className="plan-item__edit">{open ? 'Done' : 'Edit'}</span>
                   </span>
+                  {it.weightNote && <span className="coach-hint">{it.weightNote}</span>}
                 </button>
                 <button className="thumb thumb--lg" onClick={() => setDemo(it.uid)} aria-label={`Watch ${ex.name}`}>
                   <ExerciseAnimation exerciseId={ex.id} frame={1} />
@@ -184,7 +188,7 @@ export function Plan({
                   {tracksWeight(ex.kit) && (
                     <div className="control">
                       <span className="control__label">Weight</span>
-                      <WeightField kit={ex.kit} label={`${ex.name} weight`} value={it.weightKg} onChange={(weightKg) => patch(it.uid, { weightKg })} />
+                      <WeightField kit={ex.kit} label={`${ex.name} weight`} value={it.weightKg} onChange={(weightKg) => patch(it.uid, { weightKg, weightNote: undefined })} />
                     </div>
                   )}
                   <div className="control">

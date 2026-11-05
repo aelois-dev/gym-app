@@ -43,6 +43,8 @@ export interface PlanItem {
   restSec?: number
   /** Planned load in kg (per dumbbell, total barbell, or stack weight). */
   weightKg?: number
+  /** Why the coach picked this weight, e.g. "+2.5 kg: you finished every set last time". */
+  weightNote?: string
 }
 
 export interface RestDefaults {

@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon } from './components/Icon'
 import { Toast } from './components/ui'
 import { DEFAULT_REST, generatePlan, type PlanInput, type Workout } from './lib/planner'
-import { withLastWeights } from './lib/weights'
+import { withSuggestedWeights } from './lib/progression'
 import { store, type ActiveSession, type HistoryEntry, type Prefs } from './lib/storage'
 import { coachNote } from './lib/coach'
-import { adjustForReadiness, dateKey, readiness, type CheckIn } from './lib/readiness'
+import { adjustForReadiness, dateKey, readiness, type CheckIn, type Readiness } from './lib/readiness'
 import { fatigue } from './lib/recovery'
 import { DEFAULT_PROFILE, type Profile } from './lib/profile'
 import { buildProgram, dayAt, programInput, startOfWeek } from './lib/program'
@@ -61,7 +61,7 @@ export default function App() {
   }, [screen])
 
   /** New plans start at the weights you last lifted. */
-  const plan = (input: PlanInput) => withLastWeights(generatePlan(input), store.lastWeights())
+  const plan = (input: PlanInput, r: Readiness = 'normal') => withSuggestedWeights(generatePlan(input), store.history(), store.lastWeights(), r)
 
   // ---------- coach: weekly program ----------
   const coachProfile = profile ?? DEFAULT_PROFILE
@@ -75,7 +75,7 @@ export default function App() {
   const [checkIn, setCheckInState] = useState<CheckIn | null>(() => store.checkIn(dateKey()))
   const ready = readiness(checkIn)
   const makeDayPlan = () =>
-    adjustForReadiness({ ...plan(programInput(coachProfile, day, prefs)), name: day.name, programDay: day.id }, ready)
+    adjustForReadiness({ ...plan(programInput(coachProfile, day, prefs), ready), name: day.name, programDay: day.id }, ready)
   const [todayPlan, setTodayPlan] = useState<Workout>(makeDayPlan)
   useEffect(() => {
     setTodayPlan(makeDayPlan())
@@ -208,7 +208,8 @@ export default function App() {
       )}
       {screen === 'library' && (
         <Library
-          onOpen={(saved) => editPlan(withLastWeights(saved, store.lastWeights()), 'library')}
+          goal={coachProfile.goal}
+          onOpen={(saved) => editPlan(withSuggestedWeights(saved, store.history(), store.lastWeights()), 'library')}
           notify={notify}
         />
       )}
@@ -224,8 +225,8 @@ export default function App() {
             <span>Plan</span>
           </button>
           <button className={tab === 'library' ? 'is-on' : ''} onClick={() => setScreen('library')} aria-current={tab === 'library' ? 'page' : undefined}>
-            <Icon name="history" size={22} />
-            <span>Log</span>
+            <Icon name="chart" size={22} />
+            <span>Progress</span>
           </button>
         </nav>
       )}

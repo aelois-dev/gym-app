@@ -276,6 +276,7 @@ export function Session({
           {tracksWeight(ex.kit) && (
             <div className="work-weight">
               <WeightField kit={ex.kit} size="lg" label={`${ex.name} weight for set ${step.set}`} value={weightNow(item)} onChange={(kg) => setWeight(item, kg)} />
+              {item.weightNote && step.set === 1 && <p className="coach-hint coach-hint--center">{item.weightNote}</p>}
             </div>
           )}
           <p className="cue cue--work">{ex.cue}</p>

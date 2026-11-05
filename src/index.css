@@ -527,3 +527,38 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .checkin--done p { font-size: 14.5px; color: var(--text-2); }
 .checkin--done strong { color: var(--text); }
 .recovery__note { font-size: 14px; text-align: center; }
+
+.coach-hint { font-size: 13px; font-weight: 600; color: var(--text-2); margin-top: 2px; }
+.coach-hint--center { text-align: center; margin-top: 6px; }
+
+/* ---------- progress charts ---------- */
+.vol { display: flex; flex-direction: column; gap: 4px; }
+.vol__row { display: grid; grid-template-columns: 78px 1fr; align-items: center; gap: 10px; min-height: 26px; }
+.vol__label { font-size: 14px; color: var(--text-2); }
+.vol__track { position: relative; height: 22px; margin-right: 34px; }
+.vol__track::before { content: ''; position: absolute; left: 0; right: 0; top: 10px; height: 2px; border-radius: 2px; background: var(--rule); }
+.vol__band { position: absolute; top: 0; bottom: 0; background: var(--sunken); border-left: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+.vol__bar { position: absolute; left: 0; top: 6px; height: 10px; background: var(--ink-fill); border-radius: 0 4px 4px 0; }
+.vol__value { position: absolute; top: 1px; font-stretch: 68%; font-weight: 750; font-size: 16px; font-variant-numeric: tabular-nums; color: var(--text); line-height: 20px; }
+
+.wchart { position: relative; }
+.wchart__svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+.wchart__svg:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; border-radius: 6px; }
+.wchart__grid { stroke: var(--rule); stroke-width: 1; }
+.wchart__tick { fill: var(--text-3); font-size: 10px; font-variant-numeric: tabular-nums; }
+.wchart__line { fill: none; stroke: var(--ink-fill); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.wchart__dot { fill: var(--ink-fill); stroke: var(--raised); stroke-width: 2; }
+.wchart__cross { stroke: var(--text-3); stroke-width: 1; }
+.wchart__end { fill: var(--text); font-size: 11px; font-weight: 700; }
+.wchart__tip {
+  position: absolute; top: 2px; transform: translateX(-50%); pointer-events: none;
+  background: var(--ink-fill); color: var(--on-ink); border-radius: 8px; padding: 6px 10px; font-size: 13px;
+  display: flex; flex-direction: column; white-space: nowrap;
+}
+.wchart__tip > span:last-child { opacity: 0.8; font-size: 12px; }
+.wchart__tip-main { font-size: 13px; }
+.wchart__table { margin-top: 10px; font-size: 14px; }
+.wchart__table summary { cursor: pointer; font-weight: 600; min-height: 40px; display: flex; align-items: center; }
+.wchart__table table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.wchart__table th, .wchart__table td { text-align: left; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+.wchart__table th { font-weight: 600; color: var(--text-2); font-size: 13px; }
