@@ -1,16 +1,21 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon } from './components/Icon'
 import { Toast } from './components/ui'
 import { DEFAULT_REST, generatePlan, type PlanInput, type Workout } from './lib/planner'
 import { withLastWeights } from './lib/weights'
 import { store, type ActiveSession, type HistoryEntry, type Prefs } from './lib/storage'
+import { coachNote } from './lib/coach'
+import { DEFAULT_PROFILE, type Profile } from './lib/profile'
+import { buildProgram, dayAt, programInput, startOfWeek } from './lib/program'
 import { Library } from './screens/Library'
+import { Onboarding } from './screens/Onboarding'
+import { Today } from './screens/Today'
 import { Plan } from './screens/Plan'
 import { Session } from './screens/Session'
 import { Setup } from './screens/Setup'
 import { Summary } from './screens/Summary'
 
-type Screen = 'setup' | 'plan' | 'session' | 'summary' | 'library'
+type Screen = 'onboarding' | 'today' | 'setup' | 'plan' | 'session' | 'summary' | 'library'
 
 const DEFAULT_PREFS: Prefs = {
   muscles: [],
@@ -25,7 +30,12 @@ const DEFAULT_PREFS: Prefs = {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('setup')
+  const [profile, setProfileState] = useState<Profile | null>(() => store.profile())
+  const [screen, setScreen] = useState<Screen>(() => (store.profile() ? 'today' : 'onboarding'))
+  const [programIndex, setProgramIndexState] = useState(() => store.programIndex())
+  const [historyVersion, setHistoryVersion] = useState(0)
+  /** Where the plan editor returns to. */
+  const [planFrom, setPlanFrom] = useState<Screen>('setup')
   const [prefs, setPrefsState] = useState<Prefs>(() => ({ ...DEFAULT_PREFS, ...store.prefs(), muscles: store.prefs()?.muscles ?? [] }))
   const [workout, setWorkout] = useState<Workout | null>(null)
   const [session, setSession] = useState<ActiveSession | null>(() => store.active())
@@ -51,9 +61,40 @@ export default function App() {
   /** New plans start at the weights you last lifted. */
   const plan = (input: PlanInput) => withLastWeights(generatePlan(input), store.lastWeights())
 
-  const build = () => {
-    setWorkout(plan({ ...prefs, count: prefs.exerciseCount }))
+  // ---------- coach: weekly program ----------
+  const coachProfile = profile ?? DEFAULT_PROFILE
+  const program = useMemo(() => buildProgram(coachProfile), [coachProfile])
+  const day = dayAt(program, programIndex)
+  const nextDay = dayAt(program, programIndex + 1)
+  const setProgramIndex = (i: number) => {
+    setProgramIndexState(i)
+    store.setProgramIndex(i)
+  }
+  const makeDayPlan = () => ({ ...plan(programInput(coachProfile, day, prefs)), name: day.name, programDay: day.id })
+  const [todayPlan, setTodayPlan] = useState<Workout>(makeDayPlan)
+  useEffect(() => {
+    setTodayPlan(makeDayPlan())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [day.id, coachProfile, historyVersion])
+
+  const history = useMemo(() => store.history(), [historyVersion])
+  const sessionsThisWeek = history.filter((h) => h.finishedAt >= startOfWeek()).length
+  const note = coachNote({ now: Date.now(), day, history, sessionsThisWeek, targetPerWeek: coachProfile.daysPerWeek })
+
+  const saveProfile = (p: Profile) => {
+    setProfileState(p)
+    store.setProfile(p)
+    setScreen('today')
+  }
+
+  const editPlan = (w: Workout, from: Screen) => {
+    setWorkout(w)
+    setPlanFrom(from)
     setScreen('plan')
+  }
+
+  const build = () => {
+    editPlan(plan({ ...prefs, count: prefs.exerciseCount }), 'setup')
   }
 
   const start = (w: Workout) => {
@@ -70,18 +111,39 @@ export default function App() {
     if (entry) {
       store.addHistory(entry)
       store.rememberWeights(entry)
+      // Finishing today's program day moves the rotation on.
+      if (entry.programDay && entry.programDay === day.id) setProgramIndex(programIndex + 1)
+      setHistoryVersion((v) => v + 1)
       setSummary(entry)
       setScreen('summary')
     } else {
-      setScreen(session ? 'plan' : 'setup')
+      setScreen(session?.workout.programDay ? 'today' : session ? 'plan' : 'setup')
     }
   }
 
-  const tab = screen === 'library' ? 'library' : 'build'
-  const showNav = screen === 'setup' || screen === 'library'
+  const tab = screen === 'library' ? 'library' : screen === 'today' ? 'today' : 'build'
+  const showNav = screen === 'today' || screen === 'setup' || screen === 'library'
 
   return (
     <div className={`app ${showNav ? 'has-nav' : ''}`}>
+      {screen === 'onboarding' && <Onboarding initial={coachProfile} onDone={saveProfile} onCancel={profile ? () => setScreen('today') : undefined} />}
+      {screen === 'today' && (
+        <Today
+          note={note}
+          day={day}
+          nextDay={nextDay}
+          plan={todayPlan}
+          sessionsThisWeek={sessionsThisWeek}
+          targetPerWeek={coachProfile.daysPerWeek}
+          activeSession={session}
+          onResume={() => setScreen('session')}
+          onStart={() => start(todayPlan)}
+          onEditPlan={() => editPlan(todayPlan, 'today')}
+          onShuffle={() => setTodayPlan(makeDayPlan())}
+          onSkipDay={() => setProgramIndex(programIndex + 1)}
+          onSettings={() => setScreen('onboarding')}
+        />
+      )}
       {screen === 'setup' && (
         <Setup
           prefs={prefs}
@@ -101,7 +163,7 @@ export default function App() {
         <Plan
           workout={workout}
           onChange={setWorkout}
-          onBack={() => setScreen('setup')}
+          onBack={() => setScreen(planFrom)}
           onRegenerate={() => setWorkout(plan({ ...prefs, ...pickPlanInputs(workout) }))}
           onStart={() => start(workout)}
           notify={notify}
@@ -117,25 +179,25 @@ export default function App() {
             setSession(s)
           }}
           onFinish={finish}
-          onMinimize={() => setScreen('setup')}
+          onMinimize={() => setScreen(session.workout.programDay ? 'today' : 'setup')}
         />
       )}
       {screen === 'summary' && summary && (
-        <Summary entry={summary} workout={workout} onDone={() => setScreen('library')} notify={notify} />
+        <Summary entry={summary} workout={workout} onDone={() => setScreen('today')} notify={notify} />
       )}
       {screen === 'library' && (
         <Library
-          onOpen={(saved) => {
-            const w = withLastWeights(saved, store.lastWeights())
-            setWorkout(w)
-            setScreen('plan')
-          }}
+          onOpen={(saved) => editPlan(withLastWeights(saved, store.lastWeights()), 'library')}
           notify={notify}
         />
       )}
 
       {showNav && (
         <nav className="bottom-nav" aria-label="Main">
+          <button className={tab === 'today' ? 'is-on' : ''} onClick={() => setScreen('today')} aria-current={tab === 'today' ? 'page' : undefined}>
+            <Icon name="today" size={22} />
+            <span>Today</span>
+          </button>
           <button className={tab === 'build' ? 'is-on' : ''} onClick={() => setScreen('setup')} aria-current={tab === 'build' ? 'page' : undefined}>
             <Icon name="dumbbell" size={22} />
             <span>Plan</span>

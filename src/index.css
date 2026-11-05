@@ -474,3 +474,42 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   transition: background-color 0.12s, color 0.12s, border-color 0.12s;
 }
 .pill.is-on { background: var(--red); border-color: var(--red); color: var(--on-red); }
+
+/* ---------- coach: today ---------- */
+.page-head--row { flex-direction: row; align-items: center; justify-content: space-between; }
+.coach-note {
+  font-stretch: 68%; font-weight: 800; font-size: 30px; line-height: 1.05; letter-spacing: -0.005em;
+  text-wrap: balance; max-width: 22ch; margin-top: -8px;
+}
+.today-day { display: flex; flex-direction: column; gap: 8px; }
+.today-day .block__head { align-items: baseline; }
+.today-list { border-top: 1px solid var(--rule); margin-top: 6px; }
+.today-list__row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+.today-list__row .thumb { width: 60px; }
+.today-list__text { display: flex; flex-direction: column; min-width: 0; }
+.today-list__text strong { font-weight: 650; }
+.today-list__text .muted { font-size: 13.5px; }
+.today-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.week-ticks { display: flex; gap: 6px; }
+.week-tick { flex: 1; max-width: 56px; height: 10px; border-radius: 3px; background: var(--rule); }
+.week-tick.is-done { background: var(--ink-fill); }
+.week-tick.is-extra.is-done { background: var(--text-3); }
+
+/* ---------- coach: onboarding ---------- */
+.onboarding .top-bar { margin-bottom: 0; }
+.onboarding__step { font-size: 14px; }
+.options { display: flex; flex-direction: column; border-top: 1px solid var(--rule); }
+.option { display: flex; flex-direction: column; gap: 2px; padding: 14px 4px; border-bottom: 1px solid var(--rule); text-align: left; position: relative; }
+.option__label { font-size: 17px; font-weight: 650; }
+.option__sub { font-size: 14px; color: var(--text-2); }
+.option.is-on { background: var(--raised); box-shadow: inset 4px 0 0 var(--ink-fill); padding-left: 16px; }
+.presets--big .preset { min-height: 56px; font-size: 30px; }
+.program-preview { padding: 14px 16px; border-radius: var(--r-panel); background: var(--raised); border: 1px solid var(--rule); }
+.program-preview__title { font-weight: 650; }
+.program-preview ol { list-style: decimal; padding-left: 20px; margin-top: 6px; color: var(--text-2); font-size: 14.5px; }
+.number-field { display: inline-flex; align-items: center; gap: 8px; color: var(--text-2); font-size: 14px; }
+.number-field input {
+  width: 84px; height: 44px; border-radius: var(--r-control); border: 0; background: var(--sunken); text-align: center;
+  font-stretch: 68%; font-weight: 750; font-size: 21px; color: var(--text);
+}
+.number-field input:focus { outline: 2px solid var(--text); outline-offset: 1px; }

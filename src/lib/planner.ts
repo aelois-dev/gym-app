@@ -65,6 +65,8 @@ export interface Workout {
   targetMin: number
   /** Number of exercises the user asked for (unset = fill the time). */
   requestedCount?: number
+  /** Set when the workout comes from the weekly program (the day's id). */
+  programDay?: string
   items: PlanItem[]
 }
 

@@ -94,6 +94,7 @@ export function Session({
     id: uid(),
     finishedAt: Date.now(),
     name: workout.name,
+    ...(workout.programDay ? { programDay: workout.programDay } : {}),
     muscles: workout.muscles,
     durationSec: Math.round((Date.now() - session.startedAt) / 1000),
     targetMin: workout.targetMin,

@@ -1,8 +1,11 @@
 import type { Muscle } from '../data/exercises'
 import type { Workout } from './planner'
+import type { Profile } from './profile'
 
 export interface HistoryEntry {
   id: string
+  /** The weekly program day this workout was, if any. */
+  programDay?: string
   finishedAt: number
   name: string
   muscles: Muscle[]
@@ -62,6 +65,8 @@ const KEYS = {
   active: 'gp.active.v1',
   prefs: 'gp.prefs.v1',
   weights: 'gp.weights.v1',
+  profile: 'gp.profile.v1',
+  program: 'gp.program.v1',
 }
 
 function read<T>(key: string, fallback: T): T {
@@ -106,6 +111,13 @@ export const store = {
 
   prefs: () => read<Prefs | null>(KEYS.prefs, null),
   setPrefs: (p: Prefs) => write(KEYS.prefs, p),
+
+  profile: () => read<Profile | null>(KEYS.profile, null),
+  setProfile: (p: Profile) => write(KEYS.profile, p),
+
+  /** Position in the weekly program rotation (the next day to train). */
+  programIndex: () => read<{ index: number }>(KEYS.program, { index: 0 }).index,
+  setProgramIndex: (index: number) => write(KEYS.program, { index }),
 
   /** Last weight used per exercise id, in kg. */
   lastWeights: () => read<Record<string, number>>(KEYS.weights, {}),
