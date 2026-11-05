@@ -3,16 +3,25 @@ import { Icon } from '../components/Icon'
 import { formatClock, type Workout } from '../lib/planner'
 import { store, type HistoryEntry } from '../lib/storage'
 import { formatWeights } from '../lib/weights'
+import { BodyMap } from '../components/BodyMap'
+import { muscleLabel } from '../data/exercises'
+import { capitalize, listJoin } from '../lib/text'
+import { workedMuscles } from '../lib/worked'
 
 export function Summary({ entry, workout, onDone, notify }: { entry: HistoryEntry; workout: Workout | null; onDone: () => void; notify: (m: string) => void }) {
   const [saved, setSaved] = useState(() => (workout ? store.isSaved(workout.id) : true))
   const complete = entry.setsDone >= entry.totalSets
+  const worked = workedMuscles(entry)
 
   return (
     <main className="screen summary">
-      <header className="page-head">
-        <h1 className="display">{complete ? 'Workout done' : 'Workout saved'}</h1>
-        <p className="page-head__sub">{entry.name}</p>
+      <header className="page-head summary__head">
+        <BodyMap selected={worked} size="lg" />
+        <h1 className="display">{worked.length ? `${capitalize(listJoin(worked.map((m) => muscleLabel(m).toLowerCase())))} done` : 'Workout saved'}</h1>
+        <p className="page-head__sub">
+          {entry.name}
+          {complete ? ', every set finished' : ''}
+        </p>
       </header>
 
       <dl className="tally">

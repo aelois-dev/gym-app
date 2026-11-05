@@ -4,7 +4,7 @@ A mobile-first web app that builds a gym workout from the muscles you want to tr
 
 ## Features
 
-- **Plan by muscle and time:** pick any mix of Chest, Back, Shoulders, Biceps, Triceps, Legs, Glutes and Core, then set 15–120 minutes.
+- **Plan by muscle and time:** tap the muscles you want on a front and back body map, then choose how long you have (15–120 minutes). The same map shows what you trained on the summary and in the log.
 - **Equipment:** Full gym, Dumbbells, or Bodyweight. Exercises are filtered to match.
 - **Goal-based presets:** Strength 4×5, Muscle 3×10, Endurance 3×15 (compound lifts get +1 set). Every set and rep count can be edited.
 - **Choose how many exercises** on the setup screen, or leave it on Auto to fit as many as your time allows. With a set number, the sets adjust to fit your time.

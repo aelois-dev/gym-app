@@ -6,6 +6,9 @@ import { ExerciseAnimation } from '../figure/ExerciseAnimation'
 import { estimateSeconds, formatClock, formatDuration, type Workout } from '../lib/planner'
 import { store } from '../lib/storage'
 import { formatWeights } from '../lib/weights'
+import { BodyMap } from '../components/BodyMap'
+import { listJoin } from '../lib/text'
+import { workedMuscles } from '../lib/worked'
 
 type Tab = 'history' | 'saved'
 
@@ -17,7 +20,6 @@ function startOfWeek(d = new Date()) {
   return x.getTime()
 }
 
-const listJoin = (items: string[]) => (items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`)
 
 export function Library({ onOpen, notify }: { onOpen: (w: Workout) => void; notify: (m: string) => void }) {
   const [tab, setTab] = useState<Tab>('history')
@@ -73,6 +75,7 @@ export function Library({ onOpen, notify }: { onOpen: (w: Workout) => void; noti
                     <span className="num">{d.getDate()}</span>
                     <span>{d.toLocaleDateString(undefined, { month: 'short' })}</span>
                   </span>
+                  <BodyMap selected={workedMuscles(h)} size="sm" />
                   <span className="log__text">
                     <strong>{h.name}</strong>
                     <span className="muted">

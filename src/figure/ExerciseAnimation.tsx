@@ -57,7 +57,7 @@ const unit = (v: Pt): Pt => {
 const seg = (a: Pt, b: Pt) => `M${f(a[0])} ${f(a[1])}L${f(b[0])} ${f(b[1])}`
 
 /** A tapered capsule from a (radius ra) to b (radius rb). */
-function capsule(a: Pt, b: Pt, ra: number, rb: number): string {
+export function capsule(a: Pt, b: Pt, ra: number, rb: number): string {
   const u = unit(sub(b, a))
   const n: Pt = [-u[1], u[0]]
   const a1 = add(a, mul(n, ra))
@@ -68,13 +68,13 @@ function capsule(a: Pt, b: Pt, ra: number, rb: number): string {
 }
 
 /** Ellipse whose long half-axis `along` points in direction `dir`. */
-function ellipse(c: Pt, dir: Pt, along: number, across: number, key?: string | number, cls?: string) {
+export function ellipse(c: Pt, dir: Pt, along: number, across: number, key?: string | number, cls?: string) {
   const deg = (Math.atan2(dir[1], dir[0]) * 180) / Math.PI
   return <ellipse key={key} className={cls} cx={f(c[0])} cy={f(c[1])} rx={f(along)} ry={f(across)} transform={`rotate(${f(deg)} ${f(c[0])} ${f(c[1])})`} />
 }
 
 /** Draws children twice: an outline pass (merging overlaps into one silhouette) and a fill pass. */
-function Part({ cls, children }: { cls: string; children: ReactNode }) {
+export function Part({ cls, children }: { cls: string; children: ReactNode }) {
   return (
     <g className={cls}>
       <g className="fig-edge">{children}</g>

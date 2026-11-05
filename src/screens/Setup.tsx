@@ -1,8 +1,11 @@
+import { useState } from 'react'
+import { BodyMap } from '../components/BodyMap'
 import { Icon } from '../components/Icon'
-import { Segmented, Stepper } from '../components/ui'
+import { Segmented, Sheet, Stepper } from '../components/ui'
 import { EQUIPMENT, MUSCLES, type Muscle } from '../data/exercises'
 import { GOALS, MAX_EXERCISES, formatClock, formatDuration, estimateSeconds, type Workout } from '../lib/planner'
 import type { ActiveSession, Prefs } from '../lib/storage'
+import { capitalize, listJoin } from '../lib/text'
 
 const TIME_PRESETS = [20, 30, 45, 60, 90]
 
@@ -25,17 +28,17 @@ export function Setup({
   draft: Workout | null
   onOpenDraft: () => void
 }) {
+  const [restSheet, setRestSheet] = useState(false)
   const toggle = (m: Muscle) =>
     onChange({ ...prefs, muscles: prefs.muscles.includes(m) ? prefs.muscles.filter((x) => x !== m) : [...prefs.muscles, m] })
 
   const ready = prefs.muscles.length > 0
-  const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
+  const chosen = MUSCLES.filter((m) => prefs.muscles.includes(m.id)).map((m) => m.label.toLowerCase())
 
   return (
     <main className="screen">
       <header className="page-head">
         <h1 className="display">Plan a session</h1>
-        <p className="page-head__sub">{today}</p>
       </header>
 
       {activeSession && (
@@ -66,46 +69,23 @@ export function Setup({
         </button>
       )}
 
-      <section className="block">
-        <div className="block__head">
-          <h2>What are you training?</h2>
-          {prefs.muscles.length > 0 && (
+      <section className="block block--map">
+        <BodyMap selected={prefs.muscles} onToggle={toggle} />
+        <div className="selection" aria-live="polite">
+          <p className={`selection__text ${ready ? '' : 'is-empty'}`}>{ready ? capitalize(listJoin(chosen)) : 'Tap the muscles you want to train.'}</p>
+          {ready && (
             <button className="link" onClick={() => onChange({ ...prefs, muscles: [] })}>
               Clear
             </button>
           )}
-        </div>
-        <div className="pills">
-          {MUSCLES.map((m) => {
-            const on = prefs.muscles.includes(m.id)
-            return (
-              <button key={m.id} className={`pill ${on ? 'is-on' : ''}`} aria-pressed={on} onClick={() => toggle(m.id)}>
-                {on && <Icon name="check" size={16} />}
-                {m.label}
-              </button>
-            )
-          })}
         </div>
       </section>
 
       <section className="block">
         <div className="block__head">
           <h2>How long do you have?</h2>
-          <span className="readout">
-            <span className="num">{prefs.minutes}</span> min
-          </span>
+          <Stepper label="Minutes available" value={prefs.minutes} min={15} max={120} step={5} onChange={(minutes) => onChange({ ...prefs, minutes })} format={(m) => `${m} min`} />
         </div>
-        <input
-          className="range"
-          type="range"
-          min={15}
-          max={120}
-          step={5}
-          value={prefs.minutes}
-          onChange={(e) => onChange({ ...prefs, minutes: Number(e.target.value) })}
-          aria-label="Minutes available"
-          style={{ ['--fill' as string]: `${((prefs.minutes - 15) / 105) * 100}%` }}
-        />
         <div className="presets" role="group" aria-label="Quick times">
           {TIME_PRESETS.map((t) => (
             <button key={t} className={`preset ${prefs.minutes === t ? 'is-on' : ''}`} aria-pressed={prefs.minutes === t} onClick={() => onChange({ ...prefs, minutes: t })}>
@@ -147,28 +127,15 @@ export function Setup({
         </div>
         <div className="row">
           <div className="row__text">
-            <h2>Rest after compound lifts</h2>
-            <p>Squats, presses, rows and other multi-joint moves</p>
+            <h2>Rest and warm-up</h2>
+            <p>
+              {formatClock(prefs.restCompound)} after compound lifts, {formatClock(prefs.restIsolation)} after others, {prefs.warmup ? 'warm-up on' : 'no warm-up'}
+            </p>
           </div>
-          <Stepper label="Rest after compound lifts" value={prefs.restCompound} min={30} max={300} step={15} onChange={(restCompound) => onChange({ ...prefs, restCompound })} format={formatClock} />
+          <button className="btn btn--sm btn--quiet" onClick={() => setRestSheet(true)}>
+            Change
+          </button>
         </div>
-        <div className="row">
-          <div className="row__text">
-            <h2>Rest after other exercises</h2>
-            <p>Curls, raises, core work and other single-joint moves</p>
-          </div>
-          <Stepper label="Rest after other exercises" value={prefs.restIsolation} min={30} max={300} step={15} onChange={(restIsolation) => onChange({ ...prefs, restIsolation })} format={formatClock} />
-        </div>
-        <label className="row">
-          <div className="row__text">
-            <h2>Warm up first</h2>
-            <p>5 minutes of easy cardio and mobility</p>
-          </div>
-          <span className="switch">
-            <input type="checkbox" checked={prefs.warmup} onChange={(e) => onChange({ ...prefs, warmup: e.target.checked })} />
-            <span className="switch__track" />
-          </span>
-        </label>
       </div>
 
       <div className="cta-bar">
@@ -180,6 +147,38 @@ export function Setup({
               : `Build a ${prefs.minutes}-minute workout`}
         </button>
       </div>
+
+      <Sheet open={restSheet} title="Rest and warm-up" onClose={() => setRestSheet(false)}>
+        <div className="rows">
+          <div className="row">
+            <div className="row__text">
+              <h2>After compound lifts</h2>
+              <p>Squats, presses, rows and other multi-joint moves</p>
+            </div>
+            <Stepper label="Rest after compound lifts" value={prefs.restCompound} min={30} max={300} step={15} onChange={(restCompound) => onChange({ ...prefs, restCompound })} format={formatClock} />
+          </div>
+          <div className="row">
+            <div className="row__text">
+              <h2>After other exercises</h2>
+              <p>Curls, raises, core work and other single-joint moves</p>
+            </div>
+            <Stepper label="Rest after other exercises" value={prefs.restIsolation} min={30} max={300} step={15} onChange={(restIsolation) => onChange({ ...prefs, restIsolation })} format={formatClock} />
+          </div>
+          <label className="row">
+            <div className="row__text">
+              <h2>Warm up first</h2>
+              <p>5 minutes of easy cardio and mobility</p>
+            </div>
+            <span className="switch">
+              <input type="checkbox" checked={prefs.warmup} onChange={(e) => onChange({ ...prefs, warmup: e.target.checked })} />
+              <span className="switch__track" />
+            </span>
+          </label>
+        </div>
+        <button className="btn btn--primary btn--block sheet__done" onClick={() => setRestSheet(false)}>
+          Done
+        </button>
+      </Sheet>
     </main>
   )
 }
