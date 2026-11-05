@@ -1,4 +1,8 @@
-import type { ReactNode } from 'react'
+import { BodyMap } from '../components/BodyMap'
+import { CheckInCard } from '../components/CheckInCard'
+import { MUSCLES, type Muscle } from '../data/exercises'
+import { dateKey, type CheckIn } from '../lib/readiness'
+import { RECOVERING } from '../lib/recovery'
 import { Icon } from '../components/Icon'
 import { getExercise, muscleLabel } from '../data/exercises'
 import { ExerciseAnimation } from '../figure/ExerciseAnimation'
@@ -23,7 +27,9 @@ export function Today({
   onShuffle,
   onSkipDay,
   onSettings,
-  children,
+  checkIn,
+  onCheckIn,
+  fatigue,
 }: {
   note: CoachNote
   day: ProgramDay
@@ -38,9 +44,11 @@ export function Today({
   onShuffle: () => void
   onSkipDay: () => void
   onSettings: () => void
-  /** Extra coach sections (recovery, check-in) slot in under the note. */
-  children?: ReactNode
+  checkIn: CheckIn | null
+  onCheckIn: (c: CheckIn) => void
+  fatigue: Record<Muscle, number>
 }) {
+  const fatigued = MUSCLES.filter((m) => fatigue[m.id] >= RECOVERING).map((m) => m.label.toLowerCase())
   const muscles = capitalize(listJoin(day.muscles.map((m) => muscleLabel(m).toLowerCase())))
   return (
     <main className="screen today">
@@ -64,9 +72,16 @@ export function Today({
         </div>
       )}
 
-      <p className="coach-note">{note.text}</p>
+      <div className="coach">
+        <p className="coach-note">{note.text}</p>
+        {note.action === 'skip-day' && (
+          <button className="btn btn--primary btn--sm" onClick={onSkipDay}>
+            Switch to {nextDay.name.toLowerCase()}
+          </button>
+        )}
+      </div>
 
-      {children}
+      <CheckInCard date={dateKey()} value={checkIn} onSave={onCheckIn} />
 
       <section className="today-day" aria-labelledby="today-day-name">
         <div className="block__head">
@@ -107,6 +122,19 @@ export function Today({
             Do {nextDay.name.toLowerCase()} instead
           </button>
         </div>
+      </section>
+
+      <section className="block recovery" aria-labelledby="recovery-head">
+        <div className="block__head">
+          <h2 id="recovery-head">Recovery</h2>
+          <span className="muted">{fatigued.length ? 'Redder means more tired' : 'Everything is fresh'}</span>
+        </div>
+        <BodyMap
+          size="md"
+          levels={fatigue}
+          label={fatigued.length ? `Still recovering: ${listJoin(fatigued)}` : 'All muscles recovered'}
+        />
+        {fatigued.length > 0 && <p className="muted recovery__note">Still recovering: {listJoin(fatigued)}.</p>}
       </section>
 
       <section className="block" aria-labelledby="week-head">

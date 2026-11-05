@@ -67,6 +67,8 @@ export interface Workout {
   requestedCount?: number
   /** Set when the workout comes from the weekly program (the day's id). */
   programDay?: string
+  /** How ready the user said they felt when this plan was made. */
+  readiness?: 'low' | 'normal' | 'high'
   items: PlanItem[]
 }
 

@@ -5,6 +5,8 @@ import { DEFAULT_REST, generatePlan, type PlanInput, type Workout } from './lib/
 import { withLastWeights } from './lib/weights'
 import { store, type ActiveSession, type HistoryEntry, type Prefs } from './lib/storage'
 import { coachNote } from './lib/coach'
+import { adjustForReadiness, dateKey, readiness, type CheckIn } from './lib/readiness'
+import { fatigue } from './lib/recovery'
 import { DEFAULT_PROFILE, type Profile } from './lib/profile'
 import { buildProgram, dayAt, programInput, startOfWeek } from './lib/program'
 import { Library } from './screens/Library'
@@ -70,16 +72,29 @@ export default function App() {
     setProgramIndexState(i)
     store.setProgramIndex(i)
   }
-  const makeDayPlan = () => ({ ...plan(programInput(coachProfile, day, prefs)), name: day.name, programDay: day.id })
+  const [checkIn, setCheckInState] = useState<CheckIn | null>(() => store.checkIn(dateKey()))
+  const ready = readiness(checkIn)
+  const makeDayPlan = () =>
+    adjustForReadiness({ ...plan(programInput(coachProfile, day, prefs)), name: day.name, programDay: day.id }, ready)
   const [todayPlan, setTodayPlan] = useState<Workout>(makeDayPlan)
   useEffect(() => {
     setTodayPlan(makeDayPlan())
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [day.id, coachProfile, historyVersion])
+  }, [day.id, coachProfile, historyVersion, ready])
 
   const history = useMemo(() => store.history(), [historyVersion])
+  const fatigueNow = useMemo(() => fatigue(history), [history])
   const sessionsThisWeek = history.filter((h) => h.finishedAt >= startOfWeek()).length
-  const note = coachNote({ now: Date.now(), day, history, sessionsThisWeek, targetPerWeek: coachProfile.daysPerWeek })
+  const note = coachNote({
+    now: Date.now(),
+    day,
+    nextDay,
+    history,
+    sessionsThisWeek,
+    targetPerWeek: coachProfile.daysPerWeek,
+    fatigue: fatigueNow,
+    readiness: ready,
+  })
 
   const saveProfile = (p: Profile) => {
     setProfileState(p)
@@ -142,6 +157,12 @@ export default function App() {
           onShuffle={() => setTodayPlan(makeDayPlan())}
           onSkipDay={() => setProgramIndex(programIndex + 1)}
           onSettings={() => setScreen('onboarding')}
+          checkIn={checkIn}
+          onCheckIn={(c) => {
+            store.saveCheckIn(c)
+            setCheckInState(c)
+          }}
+          fatigue={fatigueNow}
         />
       )}
       {screen === 'setup' && (

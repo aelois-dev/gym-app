@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { MUSCLES, type Muscle } from '../data/exercises'
 import { Part, capsule, ellipse } from '../figure/ExerciseAnimation'
 import type { Pt } from '../figure/rig'
@@ -141,7 +141,19 @@ function Body({ cx }: { cx: number }) {
   )
 }
 
-function Figure({ side, cx, selected, onToggle }: { side: Side; cx: number; selected: Set<Muscle>; onToggle?: (m: Muscle) => void }) {
+function Figure({
+  side,
+  cx,
+  selected,
+  onToggle,
+  levels,
+}: {
+  side: Side
+  cx: number
+  selected: Set<Muscle>
+  onToggle?: (m: Muscle) => void
+  levels?: Partial<Record<Muscle, number>>
+}) {
   const interactive = !!onToggle
   return (
     <g>
@@ -156,7 +168,8 @@ function Figure({ side, cx, selected, onToggle }: { side: Side; cx: number; sele
           <g
             key={muscle}
             data-muscle={muscle}
-            className={`bm-region ${on ? 'is-on' : ''} ${interactive ? 'is-interactive' : ''}`}
+            className={`bm-region ${on ? 'is-on' : ''} ${interactive ? 'is-interactive' : ''} ${levels ? 'has-level' : ''}`}
+            style={levels ? ({ '--lvl': `${Math.round(Math.min(1, Math.max(0, levels[muscle] ?? 0)) * 100)}%` } as CSSProperties) : undefined}
             {...(interactive ? { onClick: () => onToggle(muscle) } : {})}
           >
             {interactive && <title>{label}</title>}
@@ -171,14 +184,20 @@ function Figure({ side, cx, selected, onToggle }: { side: Side; cx: number; sele
 }
 
 export function BodyMap({
-  selected,
+  selected = [],
   onToggle,
+  levels,
+  label,
   size = 'lg',
   className,
 }: {
-  selected: Muscle[]
+  selected?: Muscle[]
   onToggle?: (m: Muscle) => void
-  size?: 'lg' | 'sm'
+  /** Shade each muscle from the body tone (0) to plate red (1), e.g. recovery. */
+  levels?: Partial<Record<Muscle, number>>
+  /** Accessible description for display maps. */
+  label?: string
+  size?: 'lg' | 'sm' | 'md'
   className?: string
 }) {
   const set = new Set(selected)
@@ -187,11 +206,11 @@ export function BodyMap({
     <svg
       className={`bodymap bodymap--${size} ${className ?? ''}`}
       viewBox="0 0 200 196"
-      {...(onToggle ? { 'aria-hidden': true } : { role: 'img', 'aria-label': worked ? `Worked: ${worked}` : 'No muscles worked' })}
+      {...(onToggle ? { 'aria-hidden': true } : { role: 'img', 'aria-label': label ?? (worked ? `Worked: ${worked}` : 'No muscles worked') })}
     >
-      <Figure side="front" cx={52} selected={set} onToggle={onToggle} />
-      <Figure side="back" cx={148} selected={set} onToggle={onToggle} />
-      {size === 'lg' && (
+      <Figure side="front" cx={52} selected={set} onToggle={onToggle} levels={levels} />
+      <Figure side="back" cx={148} selected={set} onToggle={onToggle} levels={levels} />
+      {size !== 'sm' && (
         <g className="bm-caption" aria-hidden="true">
           <text x={52} y={194} textAnchor="middle">
             Front

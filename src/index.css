@@ -513,3 +513,17 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   font-stretch: 68%; font-weight: 750; font-size: 21px; color: var(--text);
 }
 .number-field input:focus { outline: 2px solid var(--text); outline-offset: 1px; }
+
+.bodymap--md { max-width: 280px; margin: 0 auto; }
+.bm-region.has-level .bm-shape > * { fill: color-mix(in srgb, var(--fig-muscle) var(--lvl), var(--bm-region)); }
+
+.coach { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.checkin { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: var(--r-panel); background: var(--raised); border: 1px solid var(--rule); }
+.checkin h2 { font-size: 17px; font-weight: 650; }
+.checkin__q { display: flex; flex-direction: column; gap: 6px; }
+.checkin__label { font-size: 13.5px; font-weight: 600; color: var(--text-2); }
+.checkin .segmented__opt { min-height: 40px; }
+.checkin--done { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; }
+.checkin--done p { font-size: 14.5px; color: var(--text-2); }
+.checkin--done strong { color: var(--text); }
+.recovery__note { font-size: 14px; text-align: center; }
