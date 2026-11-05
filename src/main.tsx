@@ -17,3 +17,6 @@ createRoot(document.getElementById('root')!).render(
     )}
   </StrictMode>,
 )
+
+// Fetch the 3D figure renderer once the first screen is up.
+setTimeout(() => void import('./figure3d/load').then((m) => m.preload3d()), 300)

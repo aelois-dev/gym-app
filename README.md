@@ -78,5 +78,6 @@ Install it as an app from the browser's **Add to Home Screen** option. Service w
 | `src/lib/warmup.ts` | Guided warm-up parts |
 | `src/lib/storage.ts` | localStorage for history, saved workouts, in-progress session and preferences |
 | `src/figure/*` | Animated exercise demos: a 2D mannequin rig (forward kinematics plus 2-bone IK) and the movement patterns each exercise maps to. Preview every animation at `/?figures` in `npm run dev`. |
+| `src/figure3d/*` | The 3D figures shown in the app: the same rig poses lifted into 3D and drawn with three.js (a shaded mannequin in clothes, with the worked muscle in red, plus benches, bars and machines). The code is a separate chunk that loads after the first screen; until then, or without WebGL, the 2D figures are shown. Demo sheets can be dragged to turn the view. |
 | `src/lib/feedback.ts` | Web Audio beeps, vibration, Wake Lock |
 | `src/screens/*` | Today, Plan tab (Setup), plan editor, Session, Summary, Progress (Library) and Habits |

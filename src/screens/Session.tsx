@@ -303,7 +303,7 @@ export function Session({
               <span className="ring__label">hold</span>
             </ProgressRing>
           ) : (
-            <div>
+            <div className="work-demo-wrap">
               <button className={`work-demo ${tracksWeight(ex.kit) ? 'work-demo--compact' : ''}`} onClick={() => setDemo(true)} aria-label={`Show ${ex.name} demo and form tip`}>
                 <ExerciseAnimation exerciseId={ex.id} />
               </button>
