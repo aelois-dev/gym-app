@@ -7,6 +7,7 @@ A mobile-first web app that builds a gym workout from the muscles you want to tr
 **Coach (all rules run on your phone; nothing leaves it)**
 - **Onboarding:** goal, experience, days per week, session length, equipment, and optional bodyweight, height, age and sex.
 - **Weekly program:** full body, push/pull/legs or upper/lower, depending on your days and experience. Days run in rotation, and the Today tab shows what's next.
+- **Fixed presets:** each program day has three versions that keep the same exercises every time (barbell, dumbbell, or machines and cables in a full gym), so weights can be compared week to week. Cards show how often and when you last did each one. The Plan tab has fixed quick-start workouts and your saved workouts, marked the same way.
 - **Recovery and readiness:** a body map shades muscles that are still recovering. When today's muscles are tired, the coach suggests the next day instead. A three-tap check-in (sleep, soreness, energy) makes low days lighter.
 - **Progression:** suggested weights follow double progression: one step heavier after finishing every set, the same weight after missed sets, and 10% lighter after missing twice. Progress shows weekly sets per muscle against your goal's range, your personal records, and a chart for each lift.
 - **Habits:** daily protein and water targets from bodyweight and goal, a calorie estimate (Mifflin-St Jeor), steps and sleep, each with a 7-day strip.
@@ -21,7 +22,9 @@ A mobile-first web app that builds a gym workout from the muscles you want to tr
 - **Rest per exercise:** 3:00 by default after compound lifts and 2:00 after everything else. You can change both defaults on the setup screen and adjust any exercise's rest on the plan. The time estimate updates as you edit.
 - **Animated exercise demos:** a jointed mannequin performs every exercise, with the muscle it works shown in red. Tap a plan row's thumbnail to watch it. When you swap or add an exercise, you can preview each option before choosing it.
 - **Swap, add, reorder or remove exercises,** each with a form tip.
-- **Guided session:** tap *Set done* to start the rest countdown, with a beep and vibration when it ends. Rest can be changed by ±15 s or skipped. Timed holds (plank, wall sit) count down on their own. An optional 5-minute warm-up runs first.
+- **Guided session:** tap *Set done* to start the rest countdown, with a beep and vibration when it ends. Rest can be changed by ±15 s or skipped. Timed holds (plank, wall sit) count down on their own. A guided warm-up (5, 10 or 15 minutes; cardio, mobility for the day's muscles, then ramp-up sets) runs first.
+- **Countdown alarm:** when a rest, hold or warm-up part ends, the phone vibrates in a long repeating pattern (Android), gives haptic taps (iPhone, iOS 18+), shows a full-screen alert and beeps, even with the iPhone's silent switch on. With notifications allowed, it also alerts you when the app is in the background.
+- **Never loses a workout:** starting a new one while another is in progress asks whether to resume, save it, or discard it.
 - **Keeps the screen awake** during a workout (Wake Lock API).
 - **Timers are based on timestamps,** so they stay accurate if the phone locks or you switch apps. Sessions can be resumed later.
 - **History and saved workouts** are stored on the device in localStorage. There are no accounts.
@@ -71,7 +74,9 @@ Install it as an app from the browser's **Add to Home Screen** option. Service w
 | --- | --- |
 | `src/data/exercises.ts` | Exercise library (129 moves) with muscle, equipment, compound flag and form cue |
 | `src/lib/planner.ts` | Time-budgeted plan generator, time estimate, swap/add candidates |
+| `src/lib/presets.ts` | Fixed preset workouts (seeded, saved line-ups, done-before counts) |
+| `src/lib/warmup.ts` | Guided warm-up parts |
 | `src/lib/storage.ts` | localStorage for history, saved workouts, in-progress session and preferences |
 | `src/figure/*` | Animated exercise demos: a 2D mannequin rig (forward kinematics plus 2-bone IK) and the movement patterns each exercise maps to. Preview every animation at `/?figures` in `npm run dev`. |
 | `src/lib/feedback.ts` | Web Audio beeps, vibration, Wake Lock |
-| `src/screens/*` | Setup → Plan → Session → Summary, plus Library |
+| `src/screens/*` | Today, Plan tab (Setup), plan editor, Session, Summary, Progress (Library) and Habits |
