@@ -24,7 +24,7 @@ export function ExerciseSheet({
         <div className="picker-preview">
           <div>
             <div className="demo">
-              <ExerciseAnimation exerciseId={ex.id} turnable />
+              <ExerciseAnimation exerciseId={ex.id} />
             </div>
             {animationCaption(ex.id) && <p className="fig-caption">{animationCaption(ex.id)}</p>}
           </div>

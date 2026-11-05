@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { use3d } from '../figure3d/load'
 import { getExercise, type Muscle } from '../data/exercises'
 import { FLOOR, animationFor, type LoadKind, type Pattern, type Prop } from './patterns'
 import { lerpPose, pointOf, solve, type Pt, type Skeleton } from './rig'
@@ -400,7 +399,6 @@ export function ExerciseAnimation({
   paused,
   className,
   highlight = true,
-  turnable,
 }: {
   exerciseId: string
   /** Fixed blend between start (0) and end (1) pose; renders a still image. */
@@ -408,39 +406,23 @@ export function ExerciseAnimation({
   paused?: boolean
   className?: string
   highlight?: boolean
-  /** Let the viewer drag to turn the 3D figure (demo sheets). */
-  turnable?: boolean
 }) {
   const ex = getExercise(exerciseId)
   const anim = useMemo(() => animationFor(exerciseId, ex.kit), [exerciseId, ex.kit])
   const reduced = useReducedMotion()
-  const three = use3d()
   const dur = (anim?.pattern.dur ?? (anim?.pattern.hold ? 3.2 : 2.4)) * 1000
-  const still = frame !== undefined || paused
-  const p = useLoop(dur, !still && !!anim && three === 'off', reduced)
+  const p = useLoop(dur, frame === undefined && !paused && !!anim, reduced)
   const box = useMemo(() => (anim ? fitBox(anim.pattern) : null), [anim])
   if (!anim || !box) return null
-  const hi = highlight ? highlightFor(exerciseId) : null
-  const label = frame === undefined ? `Animated demonstration of ${ex.name}` : `${ex.name}`
-
-  if (three === 'loading') return <div className={`fig fig--3d ${className ?? ''}`} role="img" aria-label={label} />
-  if (three !== 'off') {
-    const { Still3D, Animated3D } = three
-    if (still) return <Still3D id={exerciseId} pattern={anim.pattern} load={anim.load} hi={hi} k={frame ?? 1} label={label} className={className} />
-    const hold = anim.pattern.hold
-    const phaseAt = reduced && !hold ? (q: number) => (q < 0.5 ? 0 : 1) : (q: number) => phase(q, hold)
-    return <Animated3D id={exerciseId} pattern={anim.pattern} load={anim.load} hi={hi} label={label} className={className} phaseAt={phaseAt} durMs={reduced ? Math.max(dur, 1600) : dur} turnable={turnable} />
-  }
-
   const k = frame ?? (reduced && !anim.pattern.hold ? (p < 0.5 ? 0 : 1) : phase(p, anim.pattern.hold))
   return (
     <svg
       className={`fig ${className ?? ''}`}
       viewBox={`${box.x.toFixed(1)} ${box.y.toFixed(1)} ${box.w.toFixed(1)} ${box.h.toFixed(1)}`}
       role="img"
-      aria-label={label}
+      aria-label={frame === undefined ? `Animated demonstration of ${ex.name}` : `${ex.name}`}
     >
-      <Figure pattern={anim.pattern} load={anim.load} k={k} box={box} hi={hi} />
+      <Figure pattern={anim.pattern} load={anim.load} k={k} box={box} hi={highlight ? highlightFor(exerciseId) : null} />
     </svg>
   )
 }

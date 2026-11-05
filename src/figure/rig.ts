@@ -50,8 +50,6 @@ export interface Limb {
   toe?: Pt
   /** Depth of the hand/ankle toward the viewer (3D limbs only). */
   zEnd?: number
-  /** Depth of the elbow/knee toward the viewer (3D limbs only). */
-  zMid?: number
 }
 
 export interface Skeleton {
@@ -163,7 +161,7 @@ export function solve(pose: Pose, view: View = 'side'): Skeleton {
     if (spec.v3) {
       const [u, l] = [norm3(spec.v3[0]), norm3(spec.v3[1])]
       const mid = add(root, [u[0] * l1, -u[1] * l1])
-      return { root, mid, end: add(mid, [l[0] * l2, -l[1] * l2]), zMid: u[2] * l1, zEnd: u[2] * l1 + l[2] * l2 }
+      return { root, mid, end: add(mid, [l[0] * l2, -l[1] * l2]), zEnd: u[2] * l1 + l[2] * l2 }
     }
     if (spec.a) {
       const mid = add(root, scale(dirOf(spec.a[0]), l1))

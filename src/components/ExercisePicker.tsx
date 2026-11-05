@@ -46,7 +46,7 @@ export function ExercisePicker({
           </button>
           <div>
             <div className="demo">
-              <ExerciseAnimation exerciseId={preview.id} turnable />
+              <ExerciseAnimation exerciseId={preview.id} />
             </div>
             {animationCaption(preview.id) && <p className="fig-caption">{animationCaption(preview.id)}</p>}
           </div>
