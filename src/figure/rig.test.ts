@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { EXERCISES } from '../data/exercises'
-import { fitBox, phase } from './ExerciseAnimation'
+import { phase } from './ExerciseAnimation'
+import { drawScene, frameFor } from './view34'
 import { FLOOR, PATTERNS, animationFor, type Pattern } from './patterns'
 import { LEN, lerpPose, solve, type LimbSpec } from './rig'
 
@@ -58,8 +59,12 @@ describe('exercise animations', () => {
         bone(LEN.thigh, sk.leg.root, sk.leg.mid, leg3d)
         bone(LEN.shin, sk.leg.mid, sk.leg.end, leg3d)
       }
-      const box = fitBox(pattern)
+      const box = frameFor(pattern, 'barbell')
       expect(box.w / box.h).toBeCloseTo(1.25, 2)
+      // Every shape of the three-quarter drawing is a finite path.
+      for (const k of frames) {
+        for (const g of drawScene(pattern, 'barbell', k, 'chest')) for (const p of g.prims) expect(p.d, id).not.toMatch(/NaN|Infinity/)
+      }
     })
   }
 })

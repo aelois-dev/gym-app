@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { getExercise, type Muscle } from '../data/exercises'
-import { FLOOR, animationFor, type LoadKind, type Pattern, type Prop } from './patterns'
-import { lerpPose, pointOf, solve, type Pt, type Skeleton } from './rig'
+import { animationFor, type LoadKind, type Pattern } from './patterns'
+import type { Pt } from './rig'
+import { drawScene, frameFor, type Group, type Highlight } from './view34'
 
 const ease = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * x)
 
@@ -54,7 +55,6 @@ const unit = (v: Pt): Pt => {
   const l = Math.hypot(v[0], v[1]) || 1
   return [v[0] / l, v[1] / l]
 }
-const seg = (a: Pt, b: Pt) => `M${f(a[0])} ${f(a[1])}L${f(b[0])} ${f(b[1])}`
 
 /** A tapered capsule from a (radius ra) to b (radius rb). */
 export function capsule(a: Pt, b: Pt, ra: number, rb: number): string {
@@ -84,7 +84,7 @@ export function Part({ cls, children }: { cls: string; children: ReactNode }) {
 }
 
 // ---------- target-muscle highlight ----------
-export type Highlight = 'chest' | 'back' | 'shoulders' | 'upperArm' | 'thighs' | 'calves' | 'glutes' | 'core'
+export type { Highlight }
 
 const MUSCLE_HIGHLIGHT: Record<Muscle, Highlight> = {
   chest: 'chest',
@@ -103,320 +103,29 @@ export function highlightFor(exerciseId: string): Highlight {
   return MUSCLE_HIGHLIGHT[getExercise(exerciseId).muscle]
 }
 
-// ---------- body ----------
-// The figure is drawn as a clothed character: skin, a T-shirt with sleeves, shorts and shoes,
-// each piece filled in its own colour inside one ink outline (see Part). Hems and a few
-// muscle lines are drawn as thin ink strokes; the worked muscle is painted red on top.
-const at = (a: Pt, b: Pt, k: number): Pt => add(a, mul(sub(b, a), k))
-const perp = (v: Pt): Pt => [-v[1], v[0]]
-/** A straight-sided band from a (half-width wa) to b (half-width wb); n is the across direction. */
-const quad = (a: Pt, b: Pt, n: Pt, wa: number, wb: number) => {
-  const p = [add(a, mul(n, wa)), add(b, mul(n, wb)), add(b, mul(n, -wb)), add(a, mul(n, -wa))]
-  return `M${p.map((q) => `${f(q[0])} ${f(q[1])}`).join('L')}Z`
+const GROUP_CLS: Record<Group['kind'], string> = {
+  body: 'fig-body',
+  far: 'fig-body fig-body--far',
+  solid: 'fig-solid',
+  thin: 'fig-solid fig-solid--thin',
+  flat: 'fig-flat',
 }
-const line = (a: Pt, b: Pt, key: string) => <path key={key} className="fig-line" d={seg(a, b)} />
 
-function Arm({ sk, far, hi }: { sk: Skeleton; far?: boolean; hi: Highlight | null }) {
-  const l = far ? sk.arm2 : sk.arm
-  const upper = sub(l.mid, l.root)
-  const uDir = unit(upper)
-  const uLen = Math.hypot(upper[0], upper[1])
-  const fDir = unit(sub(l.end, l.mid))
-  const fn = perp(fDir)
+/** One frame of the rep, seen from a three-quarter angle, painted back to front. */
+export function Figure({ pattern, load, k, hi }: { pattern: Pattern; load: LoadKind; k: number; hi: Highlight | null }) {
+  const groups = drawScene(pattern, load, k, hi)
   return (
     <>
-      <path className="p-skin" d={capsule(l.root, l.mid, 4.4, 3.6)} />
-      <path className="p-skin" d={capsule(l.mid, l.end, 3.6, 2.6)} />
-      <circle className="p-skin" cx={f(l.end[0])} cy={f(l.end[1])} r={3.1} />
-      <circle className="p-shirt" cx={f(l.root[0])} cy={f(l.root[1])} r={5.9} />
-      <path className="p-shirt hem" d={capsule(l.root, add(l.root, mul(uDir, uLen * 0.46)), 5.9, 5.1)} />
-      {hi === 'upperArm' && ellipse(at(l.root, l.mid, 0.73), uDir, uLen * 0.22, 3, 'hi-arm', 'fig-muscle')}
-      {hi === 'shoulders' && <circle className="fig-muscle" cx={f(l.root[0])} cy={f(l.root[1])} r={4.6} />}
-      {line(add(at(l.mid, l.end, 0.18), mul(fn, 1.3)), add(at(l.mid, l.end, 0.55), mul(fn, 0.7)), 'fore')}
-    </>
-  )
-}
-
-function Leg({ sk, far, hi }: { sk: Skeleton; far?: boolean; hi: Highlight | null }) {
-  const l = far ? sk.leg2 : sk.leg
-  const toe = l.toe ?? l.end
-  const footDir = unit(sub(toe, l.end))
-  const heel = add(l.end, mul(footDir, -2.6))
-  const thigh = sub(l.mid, l.root)
-  const tDir = unit(thigh)
-  const tLen = Math.hypot(thigh[0], thigh[1])
-  const sDir = unit(sub(l.end, l.mid))
-  // The calf sits on the side of the shin away from the toes.
-  let back = perp(sDir)
-  if (back[0] * footDir[0] + back[1] * footDir[1] > 0) back = mul(back, -1)
-  return (
-    <>
-      <path className="p-skin" d={capsule(l.root, l.mid, 7.1, 4.7)} />
-      <path className="p-skin" d={capsule(l.mid, l.end, 4.8, 2.9)} />
-      <path className="p-shoe" d={capsule(heel, add(toe, mul(footDir, 1.5)), 3.3, 2.3)} />
-      <path className="p-shorts hem" d={capsule(add(l.root, mul(tDir, -1)), add(l.root, mul(tDir, tLen * 0.56)), 8.3, 7.2)} />
-      {hi === 'thighs' && ellipse(at(l.root, l.mid, 0.62), tDir, tLen * 0.3, 4, 'hi-thigh', 'fig-muscle')}
-      {hi === 'calves' && ellipse(add(at(l.mid, l.end, 0.34), mul(back, 1.5)), sDir, 6.5, 3.1, 'hi-calf', 'fig-muscle')}
-      {line(add(at(l.mid, l.end, 0.14), mul(back, 2.6)), add(at(l.mid, l.end, 0.55), mul(back, 1.3)), 'calf')}
-    </>
-  )
-}
-
-function Torso({ sk, front, hi }: { sk: Skeleton; front: boolean; hi: Highlight | null }) {
-  const up = unit(sub(sk.shoulder, sk.hip))
-  // Perpendicular to the spine, pointing out of the chest (the figure faces +x in side view).
-  const chestSide: Pt = [-up[1], up[0]]
-  const sc = Math.max(0.45, sk.torsoScale)
-  const ribC = add(add(sk.shoulder, mul(up, -11 * sc)), mul(chestSide, front ? 0 : 1.5))
-  const pelC = add(add(sk.hip, mul(up, 2)), mul(chestSide, front ? 0 : -0.5))
-  const ribW = front ? 15 : 10.5
-  const pelW = front ? 11.5 : 9.5
-  const waist = front ? 9 : 8
-  const hair = add(add(sk.head, mul(up, front ? 3.4 : 3.2)), mul(chestSide, front ? 0 : -3.6))
-  return (
-    <>
-      <path className="p-skin" d={capsule(add(sk.shoulder, mul(up, -1)), sk.head, 3.4, 3.4)} />
-      {ellipse(sk.head, up, 8.6, 7.4, 'head', 'p-skin')}
-      {!front && <circle className="p-skin" cx={f(sk.head[0] + chestSide[0] * 7 - up[0] * 1.2)} cy={f(sk.head[1] + chestSide[1] * 7 - up[1] * 1.2)} r={2.4} />}
-      {ellipse(hair, up, front ? 5.6 : 5.9, front ? 7.3 : 5.3, 'hair', 'p-hair')}
-      {ellipse(pelC, up, 9, pelW, 'pel', 'p-shorts')}
-      <path className="p-shirt hem" d={quad(ribC, at(ribC, pelC, 0.82), chestSide, front ? waist + 2 : waist, front ? waist + 2.6 : waist + 0.8)} />
-      {ellipse(ribC, up, 14 * sc, ribW, 'rib', 'p-shirt')}
-      {hi === 'chest' && ellipse(add(add(sk.shoulder, mul(up, -9 * sc)), mul(chestSide, front ? 0 : 4.5)), up, (front ? 6.5 : 8.5) * sc, front ? 11 : 5.2, 'hi-chest', 'fig-muscle')}
-      {hi === 'back' && ellipse(add(add(sk.shoulder, mul(up, -13 * sc)), mul(chestSide, front ? 0 : -3)), up, 11 * sc, front ? 12.5 : 5.2, 'hi-back', 'fig-muscle')}
-      {hi === 'core' && ellipse(add(add(ribC, mul(sub(pelC, ribC), 0.55)), mul(chestSide, front ? 0 : 3.4)), up, 9, front ? 6 : 4.2, 'hi-core', 'fig-muscle')}
-      {hi === 'glutes' && ellipse(add(pelC, mul(chestSide, front ? 0 : -3.4)), up, 7, front ? 10 : 5.8, 'hi-glutes', 'fig-muscle')}
-    </>
-  )
-}
-
-// ---------- equipment ----------
-function PropShape({ prop }: { prop: Prop }) {
-  switch (prop.kind) {
-    case 'bench':
-      return (
-        <g>
-          <path className="fig-steel" d={`M${prop.x + 8} ${prop.y + 5}V${FLOOR}M${prop.x + prop.w - 8} ${prop.y + 5}V${FLOOR}`} strokeWidth={3} />
-          <rect className="fig-pad" x={prop.x} y={prop.y - 1} width={prop.w} height={7} rx={3.5} />
-        </g>
-      )
-    case 'box':
-      return <rect className="fig-block" x={prop.x} y={prop.y} width={prop.w} height={FLOOR - prop.y} rx={2} />
-    case 'bar':
-      return (
-        <g>
-          <path className="fig-steel fig-steel--soft" d={`M${prop.x1} ${prop.y}V${FLOOR}M${prop.x2} ${prop.y}V${FLOOR}`} strokeWidth={3} />
-          <path className="fig-steel" d={`M${prop.x1 - 4} ${prop.y}H${prop.x2 + 4}`} strokeWidth={3.5} />
-        </g>
-      )
-    case 'dipBars':
-      return (
-        <g>
-          <path className="fig-steel fig-steel--soft" d={`M${prop.x2 - 4} ${prop.y}V${FLOOR}`} strokeWidth={3} />
-          <path className="fig-steel" d={`M${prop.x1} ${prop.y}H${prop.x2}`} strokeWidth={4} />
-        </g>
-      )
-    case 'wall':
-      return <rect className="fig-block" x={prop.x - 9} y={-40} width={9} height={FLOOR + 40} />
-    case 'pad':
-      return <path className="fig-pad-line" d={seg(prop.from, prop.to)} strokeWidth={prop.w ?? 7} />
-    case 'rect':
-      return <rect className={prop.tone === 'pad' ? 'fig-pad' : prop.tone === 'steel' ? 'fig-steel-fill' : 'fig-block'} x={prop.x} y={prop.y} width={prop.w} height={prop.h} rx={4} />
-  }
-}
-
-function hexagon(c: Pt, r: number) {
-  const pts = Array.from({ length: 6 }, (_, i) => {
-    const a = (Math.PI / 3) * i + Math.PI / 6
-    return `${f(c[0] + r * Math.cos(a))},${f(c[1] + r * Math.sin(a))}`
-  })
-  return <polygon className="fig-iron" points={pts.join(' ')} />
-}
-
-/** Things closer to the viewer draw slightly larger. */
-const depthScale = (z?: number) => 1 + Math.max(0, z ?? 0) / 90
-
-function Load({ kind, sk, pattern, t, far }: { kind: LoadKind; sk: Skeleton; pattern: Pattern; t: number; far?: boolean }) {
-  if (kind === 'none') return null
-  if (far) {
-    // Only dumbbells show in the far hand.
-    if (pattern.view === 'front') {
-      // Front view: the far hand is the figure's other side and carries its own weight or cable.
-      if (pattern.loadAt) return null
-      const end = sk.arm2.end
-      if (kind === 'dumbbell') return hexagon(end, 5.6 * depthScale(sk.arm2.zEnd))
-      if ((kind === 'cable' || kind === 'machine') && pattern.anchor && !pattern.singleCable) {
-        const a2: Pt = [2 * sk.hip[0] - pattern.anchor[0], pattern.anchor[1]]
+      {groups.map((g) => {
+        const paths = g.prims.map((p, i) => <path key={i} className={p.cls} d={p.d} />)
+        if (g.kind === 'flat') return <g key={g.key}>{paths}</g>
         return (
-          <g>
-            <path className="fig-steel" d={seg(end, a2)} strokeWidth={kind === 'cable' ? 1.3 : 4.5} />
-            <circle className="fig-pulley" cx={f(a2[0])} cy={f(a2[1])} r={4.8} />
-            <rect className="fig-steel-fill" x={f(end[0] - 3.6)} y={f(end[1] - 3.6)} width={7.2} height={7.2} rx={2} />
+          <g key={g.key} className={GROUP_CLS[g.kind]}>
+            <g className="fig-edge">{paths}</g>
+            <g className="fig-fill">{paths}</g>
           </g>
         )
-      }
-      return null
-    }
-    if (kind !== 'dumbbell' || pattern.loadAt) return null
-    return <g className="fig-far-load">{hexagon(sk.arm2.end, 5.6)}</g>
-  }
-  const at = pattern.loadAt ? pointOf(sk, pattern.loadAt, t) : sk.arm.end
-  if (kind === 'barbell') {
-    return (
-      <g>
-        <circle className="fig-iron" cx={f(at[0])} cy={f(at[1])} r={12} />
-        <circle className="fig-iron-ring" cx={f(at[0])} cy={f(at[1])} r={7.5} />
-        <circle className="fig-steel-fill" cx={f(at[0])} cy={f(at[1])} r={2.4} />
-      </g>
-    )
-  }
-  if (kind === 'dumbbell') return hexagon(at, 5.6 * (pattern.loadAt ? 1 : depthScale(sk.arm.zEnd)))
-  const anchor = pattern.anchor
-  return (
-    <g>
-      {anchor && (
-        <>
-          <path className="fig-steel" d={seg(at, anchor)} strokeWidth={kind === 'cable' ? 1.3 : 4.5} />
-          <circle className="fig-pulley" cx={f(anchor[0])} cy={f(anchor[1])} r={kind === 'cable' ? 4.8 : 5.4} />
-        </>
-      )}
-      <rect className="fig-steel-fill" x={f(at[0] - 3.6)} y={f(at[1] - 3.6)} width={7.2} height={7.2} rx={2} />
-    </g>
-  )
-}
-
-// ---------- framing ----------
-type Box = { x: number; y: number; w: number; h: number }
-
-/** Bounding box of a pattern across its whole rep, padded and widened to a 5:4 frame. */
-export function fitBox(pattern: Pattern): Box {
-  const xs: number[] = []
-  const ys: number[] = []
-  const pt = (p: Pt, r = 0) => {
-    xs.push(p[0] - r, p[0] + r)
-    ys.push(p[1] - r, p[1] + r)
-  }
-  for (const k of [0, 0.25, 0.5, 0.75, 1]) {
-    const pose = lerpPose(pattern.a, pattern.b, k)
-    const sk = solve(pose, pattern.view)
-    pt(sk.hip, 10)
-    pt(sk.shoulder, 10)
-    pt(sk.head, 9)
-    for (const l of [sk.arm, sk.arm2, sk.leg, sk.leg2]) {
-      pt(l.mid, 6)
-      pt(l.end, 12)
-      if (l.toe) pt(l.toe, 4)
-    }
-  }
-  if (pattern.anchor) pt(pattern.anchor, 6)
-  // Front views draw a second cable to the mirrored pulley.
-  if (pattern.anchor && pattern.view === 'front' && !pattern.singleCable) {
-    const hipX = pattern.a.hip[0]
-    pt([2 * hipX - pattern.anchor[0], pattern.anchor[1]], 6)
-  }
-  for (const p of pattern.props ?? []) {
-    if (p.kind === 'bench' || p.kind === 'box') pt([p.x, p.y]), pt([p.x + p.w, p.y])
-    else if (p.kind === 'bar' || p.kind === 'dipBars') pt([p.x1 - 4, p.y - 3]), pt([p.x2 + 4, p.y])
-    else if (p.kind === 'pad') pt(p.from, 4), pt(p.to, 4)
-    else if (p.kind === 'wall') xs.push(p.x - 9)
-    else if (p.kind === 'rect') pt([p.x, p.y]), pt([p.x + p.w, p.y + p.h])
-  }
-  if (!pattern.overhead) ys.push(FLOOR + 3)
-  const pad = 10
-  let x = Math.min(...xs) - pad
-  let w = Math.max(...xs) + pad - x
-  let y = Math.min(...ys) - pad
-  const bottom = Math.max(...ys) + (pattern.overhead ? pad : 5)
-  let h = bottom - y
-  const ratio = 1.25
-  if (w / h < ratio) {
-    const nw = h * ratio
-    x -= (nw - w) / 2
-    w = nw
-  } else {
-    const nh = w / ratio
-    y = bottom - nh
-    h = nh
-  }
-  return { x, y, w, h }
-}
-
-export function Figure({ pattern, load, k, box, hi }: { pattern: Pattern; load: LoadKind; k: number; box: Box; hi: Highlight | null }) {
-  const pose = lerpPose(pattern.a, pattern.b, k)
-  const sk = solve(pose, pattern.view)
-  const front = pattern.view === 'front'
-  const backProps = (pattern.props ?? []).filter((p) => p.kind !== 'bar' && p.kind !== 'dipBars')
-  const frontProps = (pattern.props ?? []).filter((p) => p.kind === 'bar' || p.kind === 'dipBars')
-  const farCls = front ? 'fig-body' : 'fig-body fig-body--far'
-  const ground = !pattern.overhead
-  const armPads = pattern.armPads
-    ? [sk.arm, sk.arm2].map((l, i) => {
-        const dir = unit(sub(l.end, l.mid))
-        return <path key={i} className="fig-pad" d={capsule(add(l.mid, mul(dir, -2)), add(l.end, mul(dir, 6)), 5.5, 5.5)} />
-      })
-    : null
-  return (
-    <>
-      {ground && <rect className="fig-ground" x={f(box.x)} y={FLOOR + 1} width={f(box.w)} height={f(box.y + box.h - FLOOR)} />}
-      {ground && <ellipse className="fig-shadow" cx={f((sk.leg.end[0] + sk.leg2.end[0] + sk.hip[0]) / 3)} cy={FLOOR + 1.5} rx={28} ry={2.6} />}
-      {backProps.map((p, i) => (
-        <PropShape key={i} prop={p} />
-      ))}
-      {pattern.overhead && (
-        // Drop shadow of the body onto the bench, so the figure reads as lying on it.
-        <g className="fig-drop" transform="translate(3 4)">
-          <Leg sk={sk} far hi={null} />
-          <Leg sk={sk} hi={null} />
-          <Torso sk={sk} front={front} hi={null} />
-          <Arm sk={sk} far hi={null} />
-          <Arm sk={sk} hi={null} />
-        </g>
-      )}
-      <Part cls={farCls}>
-        <Leg sk={sk} far hi={hi} />
-      </Part>
-      {!front && (
-        <>
-          <Part cls={farCls}>
-            <Arm sk={sk} far hi={hi} />
-          </Part>
-          <Load kind={load} sk={sk} pattern={pattern} t={pose.t} far />
-        </>
-      )}
-      {front && (
-        <Part cls="fig-body">
-          <Leg sk={sk} hi={hi} />
-        </Part>
-      )}
-      <Part cls="fig-body">
-        <Torso sk={sk} front={front} hi={hi} />
-      </Part>
-      {!front && (
-        <Part cls="fig-body">
-          <Leg sk={sk} hi={hi} />
-        </Part>
-      )}
-      {frontProps.map((p, i) => (
-        <PropShape key={i} prop={p} />
-      ))}
-      {(pattern.pads ?? []).map((ref, i) => {
-        const at = pointOf(sk, ref, pose.t)
-        return <circle key={i} className="fig-roller" cx={f(at[0])} cy={f(at[1])} r={6.5} />
       })}
-      {armPads}
-      {front && (
-        <>
-          <Part cls={farCls}>
-            <Arm sk={sk} far hi={hi} />
-          </Part>
-          <Load kind={load} sk={sk} pattern={pattern} t={pose.t} far />
-        </>
-      )}
-      {load === 'barbell' && <Load kind={load} sk={sk} pattern={pattern} t={pose.t} />}
-      <Part cls="fig-body">
-        <Arm sk={sk} hi={hi} />
-      </Part>
-      {load !== 'barbell' && <Load kind={load} sk={sk} pattern={pattern} t={pose.t} />}
     </>
   )
 }
@@ -445,7 +154,7 @@ export function ExerciseAnimation({
   const reduced = useReducedMotion()
   const dur = (anim?.pattern.dur ?? (anim?.pattern.hold ? 3.2 : 2.4)) * 1000
   const p = useLoop(dur, frame === undefined && !paused && !!anim, reduced)
-  const box = useMemo(() => (anim ? fitBox(anim.pattern) : null), [anim])
+  const box = useMemo(() => (anim ? frameFor(anim.pattern, anim.load) : null), [anim])
   if (!anim || !box) return null
   const k = frame ?? (reduced && !anim.pattern.hold ? (p < 0.5 ? 0 : 1) : phase(p, anim.pattern.hold))
   return (
@@ -455,7 +164,7 @@ export function ExerciseAnimation({
       role="img"
       aria-label={frame === undefined ? `Animated demonstration of ${ex.name}` : `${ex.name}`}
     >
-      <Figure pattern={anim.pattern} load={anim.load} k={k} box={box} hi={highlight ? highlightFor(exerciseId) : null} />
+      <Figure pattern={anim.pattern} load={anim.load} k={k} hi={highlight ? highlightFor(exerciseId) : null} />
     </svg>
   )
 }

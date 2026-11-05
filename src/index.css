@@ -28,6 +28,11 @@
   --fig-body: #3a4148;
   --fig-far: #a1a8af;
   --fig-ink: #22262b;
+  --fig-iron-face: #3a4047;
+  --fig-pad-top: #4a525b;
+  --fig-pad-dark: #22262b;
+  --fig-block-top: #dde1e5;
+  --fig-block-dark: #aab1b8;
   --fig-skin: #f2d3bd;
   --fig-skin-far: #dcb8a0;
   --fig-shirt: #f39aa3;
@@ -71,6 +76,11 @@
     --fig-body: #c4cacf;
     --fig-far: #5c636b;
     --fig-ink: #0d0f11;
+    --fig-iron-face: #626970;
+    --fig-pad-top: #545b63;
+    --fig-pad-dark: #2c3035;
+    --fig-block-top: #3e434a;
+    --fig-block-dark: #24282c;
     --fig-skin: #e9c8b1;
     --fig-skin-far: #b8957f;
     --fig-shirt: #ee8f99;
@@ -425,6 +435,22 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .fig-body .fig-fill > .hem { stroke: var(--fig-ink); stroke-width: 0.8; }
 .fig-body .fig-fill > .fig-muscle { fill: var(--muscle); stroke: var(--fig-ink); stroke-width: 0.6; }
 .fig-body .fig-fill > .fig-line { fill: none; stroke: var(--fig-ink); stroke-width: 0.75; stroke-linecap: round; opacity: 0.55; }
+.fig-body .fig-edge > .fig-muscle { display: none; }
+/* Equipment in the same illustrated style: ink outline, flat fills, a lighter face and hub. */
+.fig-solid .fig-edge > * { fill: var(--fig-ink); stroke: var(--fig-ink); stroke-width: 1.6; stroke-linejoin: round; }
+.fig-solid--thin .fig-edge > * { stroke-width: 0.9; }
+.fig-solid .fig-fill > .m-steel { fill: var(--fig-steel); }
+.fig-solid .fig-fill > .m-iron { fill: var(--fig-iron); }
+.fig-solid .fig-fill > .m-pad { fill: var(--fig-pad); }
+.fig-solid .fig-fill > .m-block { fill: var(--fig-block); }
+.fig-solid .fig-fill > .face { stroke: var(--fig-ink); stroke-width: 0.6; stroke-linejoin: round; }
+.fig-solid .fig-fill > .m-iron.face { fill: var(--fig-iron-face); }
+.fig-solid .fig-fill > .hub { fill: var(--fig-steel); }
+.fig-solid .fig-fill > .m-pad.top { fill: var(--fig-pad-top); }
+.fig-solid .fig-fill > .m-block.top { fill: var(--fig-block-top); }
+.fig-solid .fig-fill > .m-steel.top { fill: var(--fig-steel); }
+.fig-solid .fig-fill > .m-pad.dark { fill: var(--fig-pad-dark); }
+.fig-solid .fig-fill > .m-block.dark { fill: var(--fig-block-dark); }
 .fig-steel { fill: none; stroke: var(--fig-steel); stroke-linecap: round; }
 .fig-steel--soft { opacity: 0.55; }
 .fig-steel-fill { fill: var(--fig-steel); }
