@@ -8,10 +8,11 @@ const QUESTIONS: { key: 'sleep' | 'soreness' | 'energy'; label: string; options:
   { key: 'energy', label: 'Energy', options: ['Low', 'OK', 'High'] },
 ]
 
+// The coach note explains what changes; this only records how the day was rated.
 const RESULT = {
-  low: 'Lighter session today: one set fewer, longer rests.',
-  normal: 'Normal session today.',
-  high: 'Good to go. Push for the top of your reps.',
+  low: 'A low day.',
+  normal: 'A normal day.',
+  high: 'Feeling strong.',
 }
 
 /** Three-tap daily readiness check-in. Collapses to a one-line summary once saved. */

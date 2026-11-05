@@ -12,12 +12,14 @@ import { buildProgram, dayAt, programInput, startOfWeek } from './lib/program'
 import { Library } from './screens/Library'
 import { Onboarding } from './screens/Onboarding'
 import { Today } from './screens/Today'
+import { Habits } from './screens/Habits'
+import { EMPTY_DAY, targets } from './lib/nutrition'
 import { Plan } from './screens/Plan'
 import { Session } from './screens/Session'
 import { Setup } from './screens/Setup'
 import { Summary } from './screens/Summary'
 
-type Screen = 'onboarding' | 'today' | 'setup' | 'plan' | 'session' | 'summary' | 'library'
+type Screen = 'onboarding' | 'today' | 'setup' | 'plan' | 'session' | 'summary' | 'library' | 'habits'
 
 const DEFAULT_PREFS: Prefs = {
   muscles: [],
@@ -85,7 +87,11 @@ export default function App() {
   const history = useMemo(() => store.history(), [historyVersion])
   const fatigueNow = useMemo(() => fatigue(history), [history])
   const sessionsThisWeek = history.filter((h) => h.finishedAt >= startOfWeek()).length
+  const protein = targets(coachProfile).proteinG
+  const proteinToday = { ...EMPTY_DAY, ...store.habits()[dateKey()] }.proteinG
   const note = coachNote({
+    proteinTarget: protein,
+    proteinLeft: protein ? Math.max(0, protein - proteinToday) : undefined,
     now: Date.now(),
     day,
     nextDay,
@@ -136,8 +142,8 @@ export default function App() {
     }
   }
 
-  const tab = screen === 'library' ? 'library' : screen === 'today' ? 'today' : 'build'
-  const showNav = screen === 'today' || screen === 'setup' || screen === 'library'
+  const tab = screen === 'library' ? 'library' : screen === 'today' ? 'today' : screen === 'habits' ? 'habits' : 'build'
+  const showNav = screen === 'today' || screen === 'setup' || screen === 'library' || screen === 'habits'
 
   return (
     <div className={`app ${showNav ? 'has-nav' : ''}`}>
@@ -165,6 +171,7 @@ export default function App() {
           fatigue={fatigueNow}
         />
       )}
+      {screen === 'habits' && <Habits profile={coachProfile} onSettings={() => setScreen('onboarding')} />}
       {screen === 'setup' && (
         <Setup
           prefs={prefs}
@@ -227,6 +234,10 @@ export default function App() {
           <button className={tab === 'library' ? 'is-on' : ''} onClick={() => setScreen('library')} aria-current={tab === 'library' ? 'page' : undefined}>
             <Icon name="chart" size={22} />
             <span>Progress</span>
+          </button>
+          <button className={tab === 'habits' ? 'is-on' : ''} onClick={() => setScreen('habits')} aria-current={tab === 'habits' ? 'page' : undefined}>
+            <Icon name="drop" size={22} />
+            <span>Habits</span>
           </button>
         </nav>
       )}

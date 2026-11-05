@@ -4,6 +4,15 @@ A mobile-first web app that builds a gym workout from the muscles you want to tr
 
 ## Features
 
+**Coach (all rules run on your phone; nothing leaves it)**
+- **Onboarding:** goal, experience, days per week, session length, equipment, and optional bodyweight, height, age and sex.
+- **Weekly program:** full body, push/pull/legs or upper/lower, depending on your days and experience. Days run in rotation, and the Today tab shows what's next.
+- **Recovery and readiness:** a body map shades muscles that are still recovering. When today's muscles are tired, the coach suggests the next day instead. A three-tap check-in (sleep, soreness, energy) makes low days lighter.
+- **Progression:** suggested weights follow double progression: one step heavier after finishing every set, the same weight after missed sets, and 10% lighter after missing twice. Progress shows weekly sets per muscle against your goal's range, your personal records, and a chart for each lift.
+- **Habits:** daily protein and water targets from bodyweight and goal, a calorie estimate (Mifflin-St Jeor), steps and sleep, each with a 7-day strip.
+
+**Workouts**
+
 - **Plan by muscle and time:** tap the muscles you want on a front and back body map, then choose how long you have (15–120 minutes). The same map shows what you trained on the summary and in the log.
 - **Equipment:** Full gym, Dumbbells, or Bodyweight. Exercises are filtered to match.
 - **Goal-based presets:** Strength 4×5, Muscle 3×10, Endurance 3×15 (compound lifts get +1 set). Every set and rep count can be edited.

@@ -16,6 +16,10 @@ export interface CoachContext {
   /** Muscle fatigue, 0 fresh to 1 just trained. */
   fatigue?: Record<Muscle, number>
   readiness?: Readiness
+  /** Grams of protein still to eat today, when there is a target. */
+  proteinLeft?: number
+  /** Today's protein target in grams. */
+  proteinTarget?: number
 }
 
 export interface CoachNote {
@@ -33,6 +37,9 @@ const lower = (ms: string[]) => listJoin(ms.map((m) => muscleLabel(m as never).t
 export function coachNote(ctx: CoachContext): CoachNote {
   const { now, day, history } = ctx
   if (history.some((h) => sameDay(h.finishedAt, now))) {
+    if (ctx.proteinLeft && ctx.proteinLeft > 0) {
+      return { rule: 'trained-today-protein', text: `Good work today. ${Math.round(ctx.proteinLeft)} g more protein will help you recover.` }
+    }
     return { rule: 'trained-today', text: `Good work today. Rest is part of the plan; ${day.name.toLowerCase()} is next.` }
   }
   if (ctx.fatigue && ctx.nextDay && ctx.nextDay.id !== day.id) {
@@ -57,6 +64,9 @@ export function coachNote(ctx: CoachContext): CoachNote {
       rule: 'week-done',
       text: `That's ${ctx.sessionsThisWeek} of ${ctx.targetPerWeek} sessions this week. Anything more is a bonus.`,
     }
+  }
+  if (ctx.proteinLeft && ctx.proteinTarget && new Date(now).getHours() >= 17 && ctx.proteinLeft > ctx.proteinTarget / 2) {
+    return { rule: 'protein-evening', text: `${Math.round(ctx.proteinLeft)} g protein to go today. ${day.name} is ready when you are.` }
   }
   if (ctx.readiness === 'high') {
     return { rule: 'high-readiness', text: `You're feeling good. ${day.name} today; aim for the top of your reps.` }

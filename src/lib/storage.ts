@@ -2,6 +2,7 @@ import type { Muscle } from '../data/exercises'
 import type { Workout } from './planner'
 import type { Profile } from './profile'
 import type { CheckIn } from './readiness'
+import type { HabitDay } from './nutrition'
 
 export interface HistoryEntry {
   id: string
@@ -68,6 +69,7 @@ const KEYS = {
   weights: 'gp.weights.v1',
   profile: 'gp.profile.v1',
   checkins: 'gp.checkins.v1',
+  habits: 'gp.habits.v1',
   program: 'gp.program.v1',
 }
 
@@ -124,6 +126,14 @@ export const store = {
     // Keep the last 60 days.
     const keep = Object.keys(all).sort().slice(-59)
     write(KEYS.checkins, { ...Object.fromEntries(keep.map((k) => [k, all[k]])), [c.date]: c })
+  },
+
+  /** Daily habits (protein, water, steps, sleep) by date. */
+  habits: () => read<Record<string, HabitDay>>(KEYS.habits, {}),
+  saveHabitDay(date: string, day: HabitDay) {
+    const all = store.habits()
+    const keep = Object.keys(all).sort().slice(-89)
+    write(KEYS.habits, { ...Object.fromEntries(keep.map((k) => [k, all[k]])), [date]: day })
   },
 
   /** Position in the weekly program rotation (the next day to train). */

@@ -56,7 +56,17 @@ describe('coachNote', () => {
   it('notes when the weekly target is met', () => {
     expect(coachNote({ now, day, history: [entry(now - 3 * 86400e3)], sessionsThisWeek: 3, targetPerWeek: 3 }).rule).toBe('week-done')
   })
-  it('otherwise names the day', () => {
+  it('mentions protein after training, and in the evening when far behind', () => {
+    const trained = coachNote({ now, day, history: [entry(now - 3600e3)], sessionsThisWeek: 1, targetPerWeek: 3, proteinLeft: 120, proteinTarget: 160 })
+    expect(trained.text).toBe('Good work today. 120 g more protein will help you recover.')
+    const evening = new Date('2026-11-05T19:00:00').getTime()
+    const n = coachNote({ now: evening, day, history: [entry(evening - 2 * 86400e3)], sessionsThisWeek: 1, targetPerWeek: 3, proteinLeft: 120, proteinTarget: 160 })
+    expect(n.rule).toBe('protein-evening')
+    const noon = coachNote({ now, day, history: [entry(now - 2 * 86400e3)], sessionsThisWeek: 1, targetPerWeek: 3, proteinLeft: 120, proteinTarget: 160 })
+    expect(noon.rule).toBe('program-day')
+  })
+
+    it('otherwise names the day', () => {
     const n = coachNote({ now, day, history: [entry(now - 2 * 86400e3)], sessionsThisWeek: 1, targetPerWeek: 3 })
     expect(n.text).toBe('Push today: chest, shoulders and triceps.')
   })

@@ -562,3 +562,23 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .wchart__table table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .wchart__table th, .wchart__table td { text-align: left; padding: 8px 0; border-bottom: 1px solid var(--rule); }
 .wchart__table th { font-weight: 600; color: var(--text-2); font-size: 13px; }
+
+/* ---------- habits ---------- */
+.fuel { display: flex; flex-direction: column; gap: 6px; margin-top: -8px; }
+.fuel__kcal { font-size: 17px; font-weight: 600; }
+.fuel__kcal .num { font-size: 30px; }
+.habits { display: flex; flex-direction: column; border-top: 1px solid var(--rule); }
+.habit { display: flex; flex-direction: column; gap: 10px; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+.habit__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.habit__head h2 { font-size: 17px; font-weight: 650; }
+.habit__value { font-size: 14px; color: var(--text-2); white-space: nowrap; }
+.habit__value .num { font-size: 26px; color: var(--text); }
+.habit__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.habit__actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.habit__week { display: flex; gap: 5px; }
+.habit__dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--rule); }
+.habit__dot.is-met { background: var(--ink-fill); border-color: var(--ink-fill); }
+.habit__dot.is-today { outline: 1.5px solid var(--text-3); outline-offset: 1.5px; }
+.meter__fill.is-done { background: var(--ink-fill); }
+.number-field input { width: 104px; }
+.bottom-nav button span { font-size: 11.5px; }
