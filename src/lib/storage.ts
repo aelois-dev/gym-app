@@ -1,5 +1,5 @@
 import type { Muscle } from '../data/exercises'
-import type { Workout } from './planner'
+import type { PlanItem, Workout } from './planner'
 import type { Profile } from './profile'
 import type { CheckIn } from './readiness'
 import type { HabitDay } from './nutrition'
@@ -8,6 +8,8 @@ export interface HistoryEntry {
   id: string
   /** The weekly program day this workout was, if any. */
   programDay?: string
+  /** The fixed preset this workout was, if any. */
+  presetId?: string
   finishedAt: number
   name: string
   muscles: Muscle[]
@@ -27,6 +29,9 @@ export interface HistoryEntry {
     weights?: (number | null)[]
   }[]
 }
+
+/** A preset's exercises as last finished: order, sets, reps and rest (weights come from history). */
+export type PresetLineup = Pick<PlanItem, 'exerciseId' | 'sets' | 'reps' | 'restSec'>[]
 
 export interface SavedWorkout {
   savedAt: number
@@ -58,6 +63,8 @@ export interface Prefs {
   /** Exact number of exercises, or null to fill the time. */
   exerciseCount: number | null
   warmup: boolean
+  /** Warm-up length in minutes (5, 10 or 15). */
+  warmupMin?: number
   sound: boolean
 }
 
@@ -71,6 +78,7 @@ const KEYS = {
   checkins: 'gp.checkins.v1',
   habits: 'gp.habits.v1',
   program: 'gp.program.v1',
+  presets: 'gp.presets.v1',
 }
 
 function read<T>(key: string, fallback: T): T {
@@ -139,6 +147,12 @@ export const store = {
   /** Position in the weekly program rotation (the next day to train). */
   programIndex: () => read<{ index: number }>(KEYS.program, { index: 0 }).index,
   setProgramIndex: (index: number) => write(KEYS.program, { index }),
+
+  /** Fixed preset line-ups, saved the first time each preset is finished. */
+  presets: () => read<Record<string, PresetLineup>>(KEYS.presets, {}),
+  savePreset(id: string, lineup: PresetLineup) {
+    write(KEYS.presets, { ...store.presets(), [id]: lineup })
+  },
 
   /** Last weight used per exercise id, in kg. */
   lastWeights: () => read<Record<string, number>>(KEYS.weights, {}),

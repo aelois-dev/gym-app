@@ -61,13 +61,14 @@ export function dayAt(program: ProgramDay[], index: number): ProgramDay {
 }
 
 /** Planner input for a program day using the profile's time, equipment and goal. */
-export function programInput(profile: Profile, day: ProgramDay, rest: RestDefaults & { warmup: boolean }): PlanInput {
+export function programInput(profile: Profile, day: ProgramDay, rest: RestDefaults & { warmup: boolean; warmupMin?: number }): PlanInput {
   return {
     muscles: day.muscles,
     minutes: profile.sessionMin,
     equipment: profile.equipment,
     goal: planGoal(profile.goal),
     warmup: rest.warmup,
+    warmupMin: rest.warmupMin,
     restCompound: profile.goal === 'strength' ? Math.max(rest.restCompound, 180) : rest.restCompound,
     restIsolation: rest.restIsolation,
     count: null,

@@ -12,19 +12,22 @@ import type { ProgramDay } from '../lib/program'
 import type { ActiveSession } from '../lib/storage'
 import { capitalize, listJoin } from '../lib/text'
 import { formatKg } from '../lib/weights'
+import { PresetCard, type PresetCardData } from '../components/PresetCard'
 
 export function Today({
   note,
   day,
   nextDay,
   plan,
+  presets,
+  chosenPreset,
+  onChoosePreset,
   sessionsThisWeek,
   targetPerWeek,
   activeSession,
   onResume,
   onStart,
   onEditPlan,
-  onShuffle,
   onSkipDay,
   onSettings,
   checkIn,
@@ -35,13 +38,15 @@ export function Today({
   day: ProgramDay
   nextDay: ProgramDay
   plan: Workout
+  presets: PresetCardData[]
+  chosenPreset: string
+  onChoosePreset: (id: string) => void
   sessionsThisWeek: number
   targetPerWeek: number
   activeSession: ActiveSession | null
   onResume: () => void
   onStart: () => void
   onEditPlan: () => void
-  onShuffle: () => void
   onSkipDay: () => void
   onSettings: () => void
   checkIn: CheckIn | null
@@ -91,7 +96,13 @@ export function Today({
           <span className="muted">about {formatDuration(estimateSeconds(plan))}</span>
         </div>
         <p className="muted">{muscles}</p>
-        <ol className="today-list">
+        <div className="preset-cards" role="radiogroup" aria-label={`Which ${day.name.toLowerCase()} workout`}>
+          {presets.map((p) => (
+            <PresetCard key={p.id} preset={p} mode="radio" selected={p.id === chosenPreset} onSelect={() => onChoosePreset(p.id)} />
+          ))}
+        </div>
+        <p className="hint">Each version keeps the same exercises every time, so you can see your weights go up.</p>
+        <ol className="today-list" aria-label="Exercises">
           {plan.items.map((it) => {
             const ex = getExercise(it.exerciseId)
             return (
@@ -114,9 +125,6 @@ export function Today({
         <div className="today-actions">
           <button className="btn btn--quiet btn--sm" onClick={onEditPlan}>
             <Icon name="swap" size={16} /> Edit plan
-          </button>
-          <button className="btn btn--quiet btn--sm" onClick={onShuffle}>
-            <Icon name="refresh" size={16} /> Different exercises
           </button>
           <button className="btn btn--quiet btn--sm" onClick={onSkipDay}>
             Do {nextDay.name.toLowerCase()} instead
@@ -152,8 +160,8 @@ export function Today({
       </section>
 
       <div className="cta-bar">
-        <button className="btn btn--primary btn--block btn--lg" onClick={onStart} disabled={!!activeSession}>
-          {activeSession ? 'Finish your current workout first' : `Start ${day.name.toLowerCase()}`}
+        <button className="btn btn--primary btn--block btn--lg" onClick={onStart}>
+          Start {plan.name.charAt(0).toLowerCase() + plan.name.slice(1)}
         </button>
       </div>
     </main>

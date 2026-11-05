@@ -18,6 +18,10 @@ import { Plan } from './screens/Plan'
 import { Session } from './screens/Session'
 import { Setup } from './screens/Setup'
 import { Summary } from './screens/Summary'
+import { ReplaceSessionSheet } from './components/ReplaceSessionSheet'
+import { dayPresets, defaultPreset, lineupToSave, presetUsage } from './lib/presets'
+import { sessionEntry } from './lib/session'
+import { DEFAULT_WARMUP_MIN } from './lib/warmup'
 
 type Screen = 'onboarding' | 'today' | 'setup' | 'plan' | 'session' | 'summary' | 'library' | 'habits'
 
@@ -29,6 +33,7 @@ const DEFAULT_PREFS: Prefs = {
   restCompound: DEFAULT_REST.compound,
   restIsolation: DEFAULT_REST.isolation,
   warmup: true,
+  warmupMin: DEFAULT_WARMUP_MIN,
   sound: true,
   exerciseCount: null,
 }
@@ -42,7 +47,9 @@ export default function App() {
   const [planFrom, setPlanFrom] = useState<Screen>('setup')
   const [prefs, setPrefsState] = useState<Prefs>(() => ({ ...DEFAULT_PREFS, ...store.prefs(), muscles: store.prefs()?.muscles ?? [] }))
   const [workout, setWorkout] = useState<Workout | null>(null)
-  const [session, setSession] = useState<ActiveSession | null>(() => store.active())
+  const [session, setSession] = useState<ActiveSession | null>(() => migrateSession(store.active()))
+  /** A workout waiting to start while another is in progress ('end' = just ending the current one). */
+  const [replace, setReplace] = useState<{ next: Workout | null } | null>(null)
   const [summary, setSummary] = useState<HistoryEntry | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -76,15 +83,21 @@ export default function App() {
   }
   const [checkIn, setCheckInState] = useState<CheckIn | null>(() => store.checkIn(dateKey()))
   const ready = readiness(checkIn)
-  const makeDayPlan = () =>
-    adjustForReadiness({ ...plan(programInput(coachProfile, day, prefs), ready), name: day.name, programDay: day.id }, ready)
-  const [todayPlan, setTodayPlan] = useState<Workout>(makeDayPlan)
-  useEffect(() => {
-    setTodayPlan(makeDayPlan())
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [day.id, coachProfile, historyVersion, ready])
-
   const history = useMemo(() => store.history(), [historyVersion])
+
+  // Three fixed versions of today's program day; the choice is remembered per day.
+  const [presetChoice, setPresetChoice] = useState<Record<string, string>>({})
+  const presets = useMemo(
+    () => dayPresets(programInput(coachProfile, day, prefs), day, store.presets()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [day, coachProfile, prefs.warmup, prefs.warmupMin, prefs.restCompound, prefs.restIsolation, historyVersion],
+  )
+  const chosen = presets.find((p) => p.id === presetChoice[day.id]) ?? defaultPreset(presets, history, day.id)
+  const todayPlan = useMemo(
+    () => adjustForReadiness({ ...withSuggestedWeights(chosen.workout, history, store.lastWeights(), ready), programDay: day.id }, ready),
+    [chosen, history, ready, day.id],
+  )
+  const presetCards = presets.map((p) => ({ id: p.id, name: p.name, blurb: p.blurb, usage: presetUsage(history, p.id), workout: p.workout }))
   const fatigueNow = useMemo(() => fatigue(history), [history])
   const sessionsThisWeek = history.filter((h) => h.finishedAt >= startOfWeek()).length
   const protein = targets(coachProfile).proteinG
@@ -118,11 +131,34 @@ export default function App() {
     editPlan(plan({ ...prefs, count: prefs.exerciseCount }), 'setup')
   }
 
-  const start = (w: Workout) => {
+  const begin = (w: Workout) => {
     const s: ActiveSession = { workout: w, stepIndex: 0, startedAt: Date.now(), endAt: null, done: {} }
     store.setActive(s)
     setSession(s)
     setScreen('session')
+  }
+
+  /** Starting a workout never silently replaces one in progress. */
+  const start = (w: Workout) => {
+    if (session) setReplace({ next: w })
+    else begin(w)
+  }
+
+  /** Save a finished (or ended-early) session: history, last weights, preset line-up, rotation. */
+  const record = (entry: HistoryEntry, w: Workout) => {
+    store.addHistory(entry)
+    store.rememberWeights(entry)
+    if (w.presetId) store.savePreset(w.presetId, lineupToSave(w))
+    // Finishing today's program day moves the rotation on.
+    if (entry.programDay && entry.programDay === day.id) setProgramIndex(programIndex + 1)
+    setHistoryVersion((v) => v + 1)
+  }
+
+  const endCurrent = (save: boolean) => {
+    if (!session) return
+    if (save) record(sessionEntry(session), session.workout)
+    store.setActive(null)
+    setSession(null)
   }
 
   const finish = (entry: HistoryEntry | null) => {
@@ -130,11 +166,7 @@ export default function App() {
     store.setActive(null)
     setSession(null)
     if (entry) {
-      store.addHistory(entry)
-      store.rememberWeights(entry)
-      // Finishing today's program day moves the rotation on.
-      if (entry.programDay && entry.programDay === day.id) setProgramIndex(programIndex + 1)
-      setHistoryVersion((v) => v + 1)
+      if (session) record(entry, session.workout)
       setSummary(entry)
       setScreen('summary')
     } else {
@@ -154,13 +186,15 @@ export default function App() {
           day={day}
           nextDay={nextDay}
           plan={todayPlan}
+          presets={presetCards}
+          chosenPreset={chosen.id}
+          onChoosePreset={(id) => setPresetChoice({ ...presetChoice, [day.id]: id })}
           sessionsThisWeek={sessionsThisWeek}
           targetPerWeek={coachProfile.daysPerWeek}
           activeSession={session}
           onResume={() => setScreen('session')}
           onStart={() => start(todayPlan)}
           onEditPlan={() => editPlan(todayPlan, 'today')}
-          onShuffle={() => setTodayPlan(makeDayPlan())}
           onSkipDay={() => setProgramIndex(programIndex + 1)}
           onSettings={() => setScreen('onboarding')}
           checkIn={checkIn}
@@ -179,10 +213,9 @@ export default function App() {
           onBuild={build}
           activeSession={session}
           onResume={() => setScreen('session')}
-          onDiscardSession={() => {
-            store.setActive(null)
-            setSession(null)
-          }}
+          onEndSession={() => setReplace({ next: null })}
+          history={history}
+          onOpenPreset={(w) => editPlan(withSuggestedWeights(w, history, store.lastWeights()), 'setup')}
           draft={workout}
           onOpenDraft={() => setScreen('plan')}
         />
@@ -216,7 +249,6 @@ export default function App() {
       {screen === 'library' && (
         <Library
           goal={coachProfile.goal}
-          onOpen={(saved) => editPlan(withSuggestedWeights(saved, store.history(), store.lastWeights()), 'library')}
           notify={notify}
         />
       )}
@@ -241,6 +273,24 @@ export default function App() {
           </button>
         </nav>
       )}
+      {replace && session && (
+        <ReplaceSessionSheet
+          session={session}
+          next={replace.next}
+          onClose={() => setReplace(null)}
+          onResume={() => {
+            setReplace(null)
+            setScreen('session')
+          }}
+          onEnd={(save) => {
+            const next = replace.next
+            endCurrent(save)
+            setReplace(null)
+            if (next) begin(next)
+            else notify(save ? 'Saved to history' : 'Workout discarded')
+          }}
+        />
+      )}
       <Toast message={toast} />
     </div>
   )
@@ -253,8 +303,15 @@ function pickPlanInputs(w: Workout) {
     equipment: w.equipment,
     goal: w.goal,
     warmup: w.warmup,
+    warmupMin: w.warmupMin,
     count: w.requestedCount ?? null,
     ...(w.restCompound !== undefined ? { restCompound: w.restCompound } : {}),
     ...(w.restIsolation !== undefined ? { restIsolation: w.restIsolation } : {}),
   }
+}
+
+/** Sessions saved before the guided warm-up had one warm-up step; it now has four. */
+function migrateSession(s: ActiveSession | null): ActiveSession | null {
+  if (!s || !s.workout.warmup || s.workout.warmupMin !== undefined) return s
+  return { ...s, workout: { ...s.workout, warmupMin: DEFAULT_WARMUP_MIN }, stepIndex: s.stepIndex > 0 ? s.stepIndex + 3 : 0 }
 }

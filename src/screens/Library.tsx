@@ -1,19 +1,16 @@
 import { useState } from 'react'
 import { Icon } from '../components/Icon'
-import { Segmented, Sheet } from '../components/ui'
+import { Sheet } from '../components/ui'
 import { WeeklyVolume, WeightChart } from '../components/Charts'
 import { WEEKLY_SETS, exerciseSessions, personalRecords, weeklySets } from '../lib/progression'
 import { goalLabel, type FitnessGoal } from '../lib/profile'
-import { getExercise, muscleLabel } from '../data/exercises'
+import { getExercise } from '../data/exercises'
 import { ExerciseAnimation } from '../figure/ExerciseAnimation'
-import { estimateSeconds, formatClock, formatDuration, type Workout } from '../lib/planner'
+import { formatClock } from '../lib/planner'
 import { store } from '../lib/storage'
 import { formatKg, formatWeights } from '../lib/weights'
 import { BodyMap } from '../components/BodyMap'
-import { listJoin } from '../lib/text'
 import { workedMuscles } from '../lib/worked'
-
-type Tab = 'history' | 'saved'
 
 function startOfWeek(d = new Date()) {
   const x = new Date(d)
@@ -24,11 +21,9 @@ function startOfWeek(d = new Date()) {
 }
 
 
-export function Library({ onOpen, notify, goal }: { onOpen: (w: Workout) => void; notify: (m: string) => void; goal: FitnessGoal }) {
-  const [tab, setTab] = useState<Tab>('history')
+export function Library({ notify, goal }: { notify: (m: string) => void; goal: FitnessGoal }) {
   const [record, setRecord] = useState<string | null>(null)
   const [history, setHistory] = useState(store.history)
-  const [saved, setSaved] = useState(store.saved)
 
   const week = history.filter((h) => h.finishedAt >= startOfWeek())
   const weekMin = Math.round(week.reduce((n, h) => n + h.durationSec, 0) / 60)
@@ -108,18 +103,9 @@ export function Library({ onOpen, notify, goal }: { onOpen: (w: Workout) => void
         )}
       </Sheet>
 
-      <Segmented
-        label="Show"
-        value={tab}
-        onChange={setTab}
-        options={[
-          { id: 'history', label: 'History' },
-          { id: 'saved', label: `Saved workouts` },
-        ]}
-      />
-
-      {tab === 'history' &&
-        (history.length === 0 ? (
+      <section className="block" aria-labelledby="hist-head">
+      <h2 id="hist-head">History</h2>
+      {history.length === 0 ? (
           <p className="empty-note">Finish a workout and it will be logged here.</p>
         ) : (
           <ul className="log">
@@ -161,39 +147,8 @@ export function Library({ onOpen, notify, goal }: { onOpen: (w: Workout) => void
               )
             })}
           </ul>
-        ))}
-
-      {tab === 'saved' &&
-        (saved.length === 0 ? (
-          <p className="empty-note">Save a plan from its plan screen to reuse it later.</p>
-        ) : (
-          <ul className="log">
-            {saved.map(({ workout: w }) => (
-              <li key={w.id} className="log__row">
-                <button className="log__open" onClick={() => onOpen(w)}>
-                  <span className="thumb">{w.items[0] && <ExerciseAnimation exerciseId={w.items[0].exerciseId} frame={1} />}</span>
-                  <span className="log__text">
-                    <strong>{w.name}</strong>
-                    <span className="muted">
-                      {w.items.length} exercises for {listJoin(w.muscles.map((m) => muscleLabel(m).toLowerCase()))}, about {formatDuration(estimateSeconds(w))}
-                    </span>
-                  </span>
-                </button>
-                <button
-                  className="icon-btn icon-btn--sm"
-                  aria-label={`Delete saved workout ${w.name}`}
-                  onClick={() => {
-                    store.removeSaved(w.id)
-                    setSaved(store.saved())
-                    notify('Removed from saved workouts')
-                  }}
-                >
-                  <Icon name="trash" size={18} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        ))}
+        )}
+      </section>
     </main>
   )
 }

@@ -128,7 +128,9 @@ describe('estimateSeconds', () => {
     expect(estimateSeconds(moreReps)).toBeGreaterThan(t0)
     const moreRest = { ...w, items: w.items.map((i, k) => (k === 0 ? { ...i, restSec: (i.restSec ?? 0) + 30 } : i)) }
     expect(estimateSeconds(moreRest)).toBeGreaterThan(t0)
-    expect(estimateSeconds({ ...w, warmup: false })).toBe(t0 - 300)
+    // Default warm-up is 10 minutes; a 5-minute one saves 5.
+    expect(estimateSeconds({ ...w, warmup: false })).toBe(t0 - 600)
+    expect(estimateSeconds({ ...w, warmupMin: 5 })).toBe(t0 - 300)
   })
 })
 

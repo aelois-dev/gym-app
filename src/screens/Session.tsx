@@ -4,17 +4,24 @@ import { ExerciseSheet } from '../components/ExerciseSheet'
 import { ProgressRing, Sheet } from '../components/ui'
 import { ExerciseAnimation, animationCaption } from '../figure/ExerciseAnimation'
 import { getExercise } from '../data/exercises'
-import { alarm, keepAwake, tick, unlockAudio } from '../lib/feedback'
-import { WARMUP_SEC, formatClock, restFor, uid, type PlanItem, type Workout } from '../lib/planner'
+import { alarm, dismissAlerts, keepAwake, requestAlerts, shouldOfferAlerts, stopAlarm, tick, unlockAudio } from '../lib/feedback'
+import { formatClock, restFor, type PlanItem, type Workout } from '../lib/planner'
+import { sessionEntry, setsDoneIn } from '../lib/session'
+import { warmupMinutes, warmupParts, type WarmupPart } from '../lib/warmup'
 import { tracksWeight } from '../lib/weights'
 import { WeightField } from '../components/WeightField'
 import type { ActiveSession, HistoryEntry } from '../lib/storage'
 import { useNow } from '../lib/timer'
 
-type Step = { kind: 'warmup' } | { kind: 'work' | 'rest'; item: number; set: number }
+type Step = { kind: 'warmup'; part: number } | { kind: 'work' | 'rest'; item: number; set: number }
+
+export function warmupFor(w: Workout): WarmupPart[] {
+  const first = w.items[0] ? getExercise(w.items[0].exerciseId).name : undefined
+  return w.warmup ? warmupParts(warmupMinutes(w), w.muscles, first) : []
+}
 
 export function buildSteps(w: Workout): Step[] {
-  const steps: Step[] = w.warmup ? [{ kind: 'warmup' }] : []
+  const steps: Step[] = warmupFor(w).map((_, part) => ({ kind: 'warmup', part }))
   let anyWork = false
   w.items.forEach((it, item) => {
     for (let set = 1; set <= it.sets; set++) {
@@ -35,12 +42,10 @@ function restOfStep(step: Step, w: Workout): number {
 
 function endAtFor(step: Step | undefined, w: Workout, now: number): number | null {
   if (!step) return null
-  if (step.kind === 'warmup') return now + WARMUP_SEC * 1000
+  if (step.kind === 'warmup') return now + (warmupFor(w)[step.part]?.sec ?? 60) * 1000
   if (step.kind === 'rest') return now + restOfStep(step, w) * 1000
   return null
 }
-
-const WARMUP_IDEAS = ['2–3 min easy bike, row or brisk walk', 'Arm circles and band pull-aparts', 'Bodyweight squats and hip openers', '1–2 light sets of your first lift']
 
 export function Session({
   session,
@@ -59,15 +64,19 @@ export function Session({
 }) {
   const { workout, stepIndex, endAt, done } = session
   const steps = useMemo(() => buildSteps(workout), [workout])
+  const warm = useMemo(() => warmupFor(workout), [workout])
+  const firstWork = steps.findIndex((s) => s.kind === 'work')
+  const [offerAlerts, setOfferAlerts] = useState(shouldOfferAlerts)
   const step = steps[stepIndex]
   const now = useNow()
   const [menu, setMenu] = useState(false)
   const [demo, setDemo] = useState(false)
-  const [flashUntil, setFlashUntil] = useState(0)
+  /** Full-screen "time's up" overlay, shown until tapped (or for a few seconds). */
+  const [overlay, setOverlay] = useState<{ title: string; until: number } | null>(null)
   const lastTick = useRef<number | null>(null)
 
   const totalSets = workout.items.reduce((n, i) => n + i.sets, 0)
-  const setsDone = Object.values(done).reduce((n, v) => n + v, 0)
+  const setsDone = setsDoneIn(done)
   const elapsed = (now - session.startedAt) / 1000
 
   // Initialise a countdown if we arrived on a timed step without one (e.g. a fresh warm-up).
@@ -78,7 +87,10 @@ export function Session({
 
   useEffect(() => {
     keepAwake(true)
-    return () => keepAwake(false)
+    return () => {
+      keepAwake(false)
+      stopAlarm()
+    }
   }, [])
 
   const logged = session.weights ?? {}
@@ -90,29 +102,8 @@ export function Session({
     return prev ?? it.weightKg
   }
 
-  const makeEntry = (d: Record<string, number>, wts: Record<string, (number | null)[]> = logged): HistoryEntry => ({
-    id: uid(),
-    finishedAt: Date.now(),
-    name: workout.name,
-    ...(workout.programDay ? { programDay: workout.programDay } : {}),
-    muscles: workout.muscles,
-    durationSec: Math.round((Date.now() - session.startedAt) / 1000),
-    targetMin: workout.targetMin,
-    setsDone: Object.values(d).reduce((n, v) => n + v, 0),
-    totalSets,
-    exercises: workout.items.map((it) => {
-      const ex = getExercise(it.exerciseId)
-      return {
-        exerciseId: ex.id,
-        name: ex.name,
-        setsDone: d[it.uid] ?? 0,
-        sets: it.sets,
-        reps: it.reps,
-        ...(ex.timed ? { timed: true } : {}),
-        ...(wts[it.uid]?.some((w) => w !== null) ? { weights: wts[it.uid] } : {}),
-      }
-    }),
-  })
+  const makeEntry = (d: Record<string, number>, wts: Record<string, (number | null)[]> = logged): HistoryEntry =>
+    sessionEntry({ ...session, done: d, weights: wts })
 
   const goTo = (index: number, d: Record<string, number> = done, extra: Partial<ActiveSession> = {}) => {
     if (index >= steps.length) {
@@ -147,12 +138,19 @@ export function Session({
     if (endAt === null || !step) return
     const left = Math.ceil((endAt - now) / 1000)
     if (left <= 0) {
-      alarm(sound)
+      const next = steps[stepIndex + 1]
+      const title =
+        step.kind === 'rest'
+          ? "Rest's over"
+          : step.kind === 'warmup'
+            ? next?.kind === 'warmup'
+              ? 'Next warm-up part'
+              : 'Warm-up done'
+            : 'Hold done'
+      alarm(sound, title)
+      setOverlay({ title, until: Date.now() + 8000 })
       if (step.kind === 'work') completeSet()
-      else {
-        setFlashUntil(Date.now() + 3000)
-        goTo(stepIndex + 1)
-      }
+      else goTo(stepIndex + 1)
       return
     }
     if (left <= 3 && lastTick.current !== left) {
@@ -172,10 +170,23 @@ export function Session({
   const item = step.kind === 'warmup' ? null : workout.items[step.item]
   const ex = item ? getExercise(item.exerciseId) : null
   const remaining = endAt ? Math.max(0, (endAt - now) / 1000) : 0
-  const flashing = now < flashUntil && step.kind === 'work'
+  const showOverlay = overlay !== null && now < overlay.until
+  const part = step.kind === 'warmup' ? warm[step.part] : null
+  const dismiss = () => {
+    stopAlarm()
+    if (overlay) setOverlay(null)
+  }
+  const overlayDetail =
+    step.kind === 'work' && item ? `Set ${step.set} of ${item.sets}: ${ex?.name}` : step.kind === 'warmup' && part ? part.title : step.kind === 'rest' && ex ? `Next: ${ex.name}` : ''
 
   return (
-    <main className="screen session" onPointerDown={unlockAudio}>
+    <main
+      className="screen session"
+      onPointerDown={() => {
+        unlockAudio()
+        stopAlarm()
+      }}
+    >
       <header className="top-bar">
         <button className="icon-btn" onClick={onMinimize} aria-label="Minimise workout">
           <Icon name="down" />
@@ -195,24 +206,65 @@ export function Session({
         <div className="progress__fill" style={{ width: `${(setsDone / totalSets) * 100}%` }} />
       </div>
 
-      {flashing && step.kind === 'work' && item && (
-        <div className="flash" role="alert">
-          Rest's over. Set {step.set} of {item.sets}.
+      {showOverlay && overlay && (
+        <button className="alarm" onClick={dismiss} aria-label={`${overlay.title}. Tap to close`}>
+          <span role="alert" className="alarm__text">
+            <strong>{overlay.title}</strong>
+            {overlayDetail && <span>{overlayDetail}</span>}
+          </span>
+          <span className="alarm__hint">Tap to close</span>
+        </button>
+      )}
+
+      {offerAlerts && (
+        <div className="notice notice--alerts">
+          <div className="notice__text">
+            <strong>Alert me when rest ends</strong>
+            <span>Get a notification if you switch to another app.</span>
+          </div>
+          <button
+            className="btn btn--sm btn--quiet"
+            onClick={() => {
+              dismissAlerts()
+              setOfferAlerts(false)
+            }}
+          >
+            No thanks
+          </button>
+          <button
+            className="btn btn--sm btn--primary"
+            onClick={() => {
+              void requestAlerts()
+              setOfferAlerts(false)
+            }}
+          >
+            Turn on
+          </button>
         </div>
       )}
 
-      {step.kind === 'warmup' && (
+      {step.kind === 'warmup' && part && (
         <section className="stage">
-          <h1 className="display">Warm up</h1>
-          <ProgressRing progress={1 - remaining / WARMUP_SEC} size={220}>
+          <p className="stage__count">
+            Warm-up, part {step.part + 1} of {warm.length}
+          </p>
+          <h1 className="display work-title">{part.title}</h1>
+          <ProgressRing progress={1 - remaining / part.sec} size={200}>
             <span className="ring__time num">{formatClock(remaining)}</span>
-            <span className="ring__label">left</span>
+            <span className="ring__label">of {formatClock(part.sec)}</span>
           </ProgressRing>
-          <ul className="idea-list">
-            {WARMUP_IDEAS.map((t) => (
-              <li key={t}>{t}</li>
+          <p className="cue cue--work">{part.detail}</p>
+          <ol className="warm-list" aria-label="Warm-up parts">
+            {warm.map((p, i) => (
+              <li key={i} className={i < step.part ? 'is-done' : i === step.part ? 'is-now' : ''} aria-current={i === step.part ? 'step' : undefined}>
+                <span className="warm-list__mark" aria-hidden="true">
+                  {i < step.part ? <Icon name="check" size={14} /> : i + 1}
+                </span>
+                <span className="warm-list__title">{p.title}</span>
+                <span className="warm-list__time num">{formatClock(p.sec)}</span>
+              </li>
             ))}
-          </ul>
+          </ol>
         </section>
       )}
 
@@ -286,7 +338,13 @@ export function Session({
       <div className="cta-bar cta-bar--session">
         {step.kind === 'warmup' && (
           <button className="btn btn--primary btn--block btn--lg" onClick={() => goTo(stepIndex + 1)}>
-            Start lifting
+            {step.part < warm.length - 1 ? (
+              <>
+                Next: {warm[step.part + 1].title.toLowerCase()}
+              </>
+            ) : (
+              'Start lifting'
+            )}
           </button>
         )}
         {step.kind === 'rest' && (
@@ -319,6 +377,11 @@ export function Session({
           {step.kind === 'work' && (
             <button className="link" onClick={skipExercise}>
               Skip exercise
+            </button>
+          )}
+          {step.kind === 'warmup' && step.part < warm.length - 1 && firstWork !== -1 && (
+            <button className="link" onClick={() => goTo(firstWork)}>
+              Skip warm-up
             </button>
           )}
           <button className="link" onClick={() => setMenu(true)}>

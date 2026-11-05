@@ -1,3 +1,4 @@
+import { warmupMinutes } from '../lib/warmup'
 import { useState } from 'react'
 import { Icon } from '../components/Icon'
 import { ExercisePicker, describe } from '../components/ExercisePicker'
@@ -132,7 +133,7 @@ export function Plan({
           <div className="row">
             <div className="row__text">
               <h2>Warm-up</h2>
-              <p>5 minutes before the first set</p>
+              <p>{warmupMinutes(workout)} minutes, guided, before the first set</p>
             </div>
             <button className="link" onClick={() => commit({ ...workout, warmup: false })}>
               Remove

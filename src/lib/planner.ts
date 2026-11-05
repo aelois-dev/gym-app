@@ -4,8 +4,10 @@ import {
   getExercise,
   type EquipmentMode,
   type Exercise,
+  type Kit,
   type Muscle,
 } from '../data/exercises'
+import { DEFAULT_WARMUP_MIN, warmupMinutes } from './warmup'
 
 export type Goal = 'strength' | 'muscle' | 'endurance'
 
@@ -24,7 +26,6 @@ const BASE: Record<Goal, { sets: number; reps: number; holdSec: number }> = {
   endurance: { sets: 3, reps: 15, holdSec: 45 },
 }
 
-export const WARMUP_SEC = 5 * 60
 /** Seconds per rep, plus time to get set up for each set. */
 export const SEC_PER_REP = 3
 export const SET_SETUP_SEC = 10
@@ -45,6 +46,9 @@ export interface PlanItem {
   weightKg?: number
   /** Why the coach picked this weight, e.g. "+2.5 kg: you finished every set last time". */
   weightNote?: string
+  /** Planned sets and rest before a low-readiness day lightened them. */
+  baseSets?: number
+  baseRestSec?: number
 }
 
 export interface RestDefaults {
@@ -64,7 +68,11 @@ export interface Workout {
   /** Legacy: one rest time for the whole workout (saved before per-exercise rest). */
   restSec?: number
   warmup: boolean
+  /** Warm-up length in minutes (older workouts: the default). */
+  warmupMin?: number
   targetMin: number
+  /** Set when the workout is one of the fixed presets (e.g. "push:barbell"). */
+  presetId?: string
   /** Number of exercises the user asked for (unset = fill the time). */
   requestedCount?: number
   /** Set when the workout comes from the weekly program (the day's id). */
@@ -80,6 +88,9 @@ export interface PlanInput extends RestDefaults {
   equipment: EquipmentMode
   goal: Goal
   warmup: boolean
+  warmupMin?: number
+  /** Kits to pick first (fixed presets such as "barbell focus"). */
+  prefer?: Kit[]
   /** Exact number of exercises wanted; null/undefined fills the available time instead. */
   count?: number | null
 }
@@ -108,16 +119,17 @@ export function restFor(item: PlanItem, w: Pick<Workout, 'restSec' | 'restCompou
   return item.restSec ?? w.restSec ?? defaultRest(getExercise(item.exerciseId), w)
 }
 
-type Timing = Pick<Workout, 'items' | 'warmup' | 'restSec' | 'restCompound' | 'restIsolation'>
+type Timing = Pick<Workout, 'items' | 'warmup' | 'warmupMin' | 'restSec' | 'restCompound' | 'restIsolation'>
 
 /**
  * Estimated session length in seconds. Each set is followed by that exercise's rest,
  * except the very last set of the workout.
  */
 export function estimateSeconds(w: Timing): number {
-  const { items, warmup } = w
-  if (items.length === 0) return warmup ? WARMUP_SEC : 0
-  let total = warmup ? WARMUP_SEC : 0
+  const { items } = w
+  const warm = warmupMinutes(w) * 60
+  if (items.length === 0) return warm
+  let total = warm
   items.forEach((it, i) => {
     const rest = restFor(it, w)
     total += it.sets * workSeconds(getExercise(it.exerciseId), it.reps)
@@ -164,6 +176,7 @@ export function generatePlan(input: PlanInput, rand: () => number = Math.random)
     restCompound: input.restCompound,
     restIsolation: input.restIsolation,
     warmup: input.warmup,
+    ...(input.warmup ? { warmupMin: input.warmupMin ?? DEFAULT_WARMUP_MIN } : {}),
     targetMin: input.minutes,
     ...(input.count ? { requestedCount: input.count } : {}),
     items: [],
@@ -175,8 +188,9 @@ export function generatePlan(input: PlanInput, rand: () => number = Math.random)
     const pool = poolFor(m, input.equipment)
     // Alternate compound / isolation (compound first) so plans get a balanced mix.
     // Within each group, prefer the equipment the user chose; bodyweight moves are the fallback.
-    const preferred = (e: Exercise) => input.equipment === 'bodyweight' || e.kit !== 'bodyweight'
-    const ordered = (list: Exercise[]) => [...shuffle(list.filter(preferred), rand), ...shuffle(list.filter((e) => !preferred(e)), rand)]
+    // A preset's preferred kits come before everything else.
+    const rank = (e: Exercise) => (input.prefer?.includes(e.kit) ? 0 : input.equipment === 'bodyweight' || e.kit !== 'bodyweight' ? 1 : 2)
+    const ordered = (list: Exercise[]) => [0, 1, 2].flatMap((r) => shuffle(list.filter((e) => rank(e) === r), rand))
     const comp = ordered(pool.filter((e) => e.compound))
     const iso = ordered(pool.filter((e) => !e.compound))
     const q: Exercise[] = []

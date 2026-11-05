@@ -1,10 +1,16 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { PresetCard } from '../components/PresetCard'
+import { presetUsage, quickPresets } from '../lib/presets'
+import { WARMUP_OPTIONS, warmupMinutes } from '../lib/warmup'
+import { store, type HistoryEntry } from '../lib/storage'
 import { BodyMap } from '../components/BodyMap'
 import { Icon } from '../components/Icon'
 import { Segmented, Sheet, Stepper } from '../components/ui'
 import { EQUIPMENT, MUSCLES, type Muscle } from '../data/exercises'
 import { GOALS, MAX_EXERCISES, formatClock, formatDuration, estimateSeconds, type Workout } from '../lib/planner'
 import type { ActiveSession, Prefs } from '../lib/storage'
+import { muscleLabel } from '../data/exercises'
+import { listJoin } from '../lib/text'
 
 const TIME_PRESETS = [20, 30, 45, 60, 90]
 
@@ -14,20 +20,39 @@ export function Setup({
   onBuild,
   activeSession,
   onResume,
-  onDiscardSession,
+  onEndSession,
   draft,
   onOpenDraft,
+  history,
+  onOpenPreset,
 }: {
   prefs: Prefs
   onChange: (p: Prefs) => void
   onBuild: () => void
   activeSession: ActiveSession | null
   onResume: () => void
-  onDiscardSession: () => void
+  onEndSession: () => void
   draft: Workout | null
   onOpenDraft: () => void
+  history: HistoryEntry[]
+  onOpenPreset: (w: Workout) => void
 }) {
   const [restSheet, setRestSheet] = useState(false)
+  const [saved, setSaved] = useState(store.saved)
+  const quick = useMemo(
+    () => quickPresets({ ...prefs, count: null }, store.presets()).map((p) => ({ ...p, usage: presetUsage(history, p.id) })),
+    [prefs, history],
+  )
+  const savedCards = saved.map(({ workout: w }) => {
+    const id = `saved:${w.id}`
+    return {
+      id,
+      name: w.name,
+      blurb: `Saved, for ${listJoin(w.muscles.map((m) => muscleLabel(m).toLowerCase()))}`,
+      usage: presetUsage(history, id),
+      workout: { ...w, presetId: id },
+    }
+  })
   const toggle = (m: Muscle) =>
     onChange({ ...prefs, muscles: prefs.muscles.includes(m) ? prefs.muscles.filter((x) => x !== m) : [...prefs.muscles, m] })
 
@@ -46,7 +71,7 @@ export function Setup({
             <strong>{activeSession.workout.name}</strong>
             <span>In progress for {formatClock((Date.now() - activeSession.startedAt) / 1000)}</span>
           </div>
-          <button className="btn btn--sm btn--quiet" onClick={onDiscardSession}>
+          <button className="btn btn--sm btn--quiet" onClick={onEndSession}>
             End
           </button>
           <button className="btn btn--sm btn--primary" onClick={onResume}>
@@ -67,9 +92,47 @@ export function Setup({
         </button>
       )}
 
+      <section className="block" aria-labelledby="quick-head">
+        <div className="block__head">
+          <h2 id="quick-head">Quick start</h2>
+          <span className="muted">Same exercises every time</span>
+        </div>
+        <ul className="preset-list">
+          {quick.map((p) => (
+            <li key={p.id}>
+              <PresetCard preset={p} mode="open" onSelect={() => onOpenPreset(p.workout)} />
+            </li>
+          ))}
+        </ul>
+        <p className="hint">Built for {prefs.minutes} minutes with your equipment and goal below.</p>
+      </section>
+
+      {savedCards.length > 0 && (
+        <section className="block" aria-labelledby="saved-head">
+          <h2 id="saved-head">Saved workouts</h2>
+          <ul className="preset-list">
+            {savedCards.map((p) => (
+              <li key={p.id} className="preset-list__row">
+                <PresetCard preset={p} mode="open" onSelect={() => onOpenPreset(p.workout)} />
+                <button
+                  className="icon-btn icon-btn--sm"
+                  aria-label={`Delete saved workout ${p.name}`}
+                  onClick={() => {
+                    store.removeSaved(p.workout.id)
+                    setSaved(store.saved())
+                  }}
+                >
+                  <Icon name="trash" size={18} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="block block--map">
         <div className="block__head">
-          <h2>What are you training?</h2>
+          <h2>Or build your own: what are you training?</h2>
           {ready && (
             <button className="link" onClick={() => onChange({ ...prefs, muscles: [] })}>
               Clear
@@ -137,7 +200,7 @@ export function Setup({
           <div className="row__text">
             <h2>Rest and warm-up</h2>
             <p>
-              {formatClock(prefs.restCompound)} after compound lifts, {formatClock(prefs.restIsolation)} after others, {prefs.warmup ? 'warm-up on' : 'no warm-up'}
+              {formatClock(prefs.restCompound)} after compound lifts, {formatClock(prefs.restIsolation)} after others, {prefs.warmup ? `${warmupMinutes(prefs)}-minute warm-up` : 'no warm-up'}
             </p>
           </div>
           <button className="btn btn--sm btn--quiet" onClick={() => setRestSheet(true)}>
@@ -175,13 +238,26 @@ export function Setup({
           <label className="row">
             <div className="row__text">
               <h2>Warm up first</h2>
-              <p>5 minutes of easy cardio and mobility</p>
+              <p>Guided: easy cardio, mobility for the day's muscles, then light sets</p>
             </div>
             <span className="switch">
               <input type="checkbox" checked={prefs.warmup} onChange={(e) => onChange({ ...prefs, warmup: e.target.checked })} />
               <span className="switch__track" />
             </span>
           </label>
+          {prefs.warmup && (
+            <div className="row row--stack">
+              <div className="row__text">
+                <h2>Warm-up length</h2>
+              </div>
+              <Segmented
+                label="Warm-up length"
+                value={String(warmupMinutes(prefs))}
+                onChange={(v) => onChange({ ...prefs, warmupMin: Number(v) })}
+                options={WARMUP_OPTIONS.map((m) => ({ id: String(m), label: `${m} min` }))}
+              />
+            </div>
+          )}
         </div>
         <button className="btn btn--primary btn--block sheet__done" onClick={() => setRestSheet(false)}>
           Done

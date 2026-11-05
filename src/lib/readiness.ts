@@ -34,6 +34,7 @@ export function adjustForReadiness(w: Workout, r: Readiness): Workout {
   if (r !== 'low') return tagged
   return {
     ...tagged,
-    items: w.items.map((it) => ({ ...it, sets: Math.max(2, it.sets - 1), restSec: restFor(it, w) + 30 })),
+    // Keep the planned sets and rest so a fixed preset can be saved without the lighter day.
+    items: w.items.map((it) => ({ ...it, baseSets: it.baseSets ?? it.sets, baseRestSec: it.baseRestSec ?? restFor(it, w), sets: Math.max(2, it.sets - 1), restSec: restFor(it, w) + 30 })),
   }
 }
